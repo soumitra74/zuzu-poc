@@ -45,3 +45,9 @@ review-system-microservice/
 ├── pom.xml
 ```
 
+## Database configuration
+
+(I have used postgres for this implementation.)
+
+Create an user zuzu and a db named hotel_reviews
+Update .env file for db configuration.

@@ -1,0 +1,36 @@
+CREATE TABLE job_runs (
+    id              SERIAL PRIMARY KEY,
+    scheduled_at    TIMESTAMP NOT NULL,
+    started_at      TIMESTAMP,
+    finished_at     TIMESTAMP,
+    status          TEXT CHECK (status IN ('pending', 'running', 'success', 'failed')),
+    notes           TEXT
+);
+
+CREATE TABLE s3_files (
+    id              SERIAL PRIMARY KEY,
+    job_run_id      INTEGER REFERENCES job_runs(id),
+    s3_key          TEXT NOT NULL UNIQUE,
+    processed_at    TIMESTAMP,
+    record_count    INTEGER,
+    status          TEXT CHECK (status IN ('success', 'partial', 'failed')),
+    checksum        TEXT,
+    error_message   TEXT
+);
+
+CREATE TABLE records (
+    id              SERIAL PRIMARY KEY,
+    s3_file_id      INTEGER REFERENCES s3_files(id),
+    job_run_id      INTEGER REFERENCES job_runs(id),
+    raw_data        JSONB,
+    status          TEXT CHECK (status IN ('success', 'failed')),
+    processed_at    TIMESTAMP,
+    error_flag      BOOLEAN DEFAULT FALSE
+);
+
+CREATE TABLE record_errors (
+    record_id       INTEGER PRIMARY KEY REFERENCES records(id),
+    error_type      TEXT,
+    error_message   TEXT,
+    traceback       TEXT
+); 
