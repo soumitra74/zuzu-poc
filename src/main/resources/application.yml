@@ -1,22 +1,19 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/hotel_reviews
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/hotel_reviews}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
+    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
-    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    database-platform: ${DB_PLATFORM:org.hibernate.dialect.PostgreSQLDialect}
 
 aws:
   s3:
     bucket: ${AWS_S3_BUCKET}
     region: ${AWS_REGION}
-    access-key: ${AWS_ACCESS_KEY}
-    secret-key: ${AWS_SECRET_KEY}
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
 
-# Scheduling example
-#scheduling:
-#  enabled: true 
