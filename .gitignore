@@ -16,3 +16,6 @@ target/
 *.rar
 
 .vscode/
+.env
+
+Pipfile

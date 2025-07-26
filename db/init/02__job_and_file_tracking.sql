@@ -11,9 +11,11 @@ CREATE TABLE s3_files (
     id              SERIAL PRIMARY KEY,
     job_run_id      INTEGER REFERENCES job_runs(id),
     s3_key          TEXT NOT NULL UNIQUE,
-    processed_at    TIMESTAMP,
+    started_at      TIMESTAMP,
+    finished_at     TIMESTAMP,
     record_count    INTEGER,
-    status          TEXT CHECK (status IN ('success', 'partial', 'failed')),
+    page_number     INTEGER,
+    status          TEXT CHECK (status IN ('new', 'processing', 'success', 'partial', 'failed')),
     checksum        TEXT,
     error_message   TEXT
 );
@@ -23,8 +25,9 @@ CREATE TABLE records (
     s3_file_id      INTEGER REFERENCES s3_files(id),
     job_run_id      INTEGER REFERENCES job_runs(id),
     raw_data        JSONB,
-    status          TEXT CHECK (status IN ('success', 'failed')),
-    processed_at    TIMESTAMP,
+    status          TEXT CHECK (status IN ('new', 'processing', 'success', 'partial', 'failed')),
+    started_at      TIMESTAMP,
+    finished_at     TIMESTAMP,
     error_flag      BOOLEAN DEFAULT FALSE
 );
 
