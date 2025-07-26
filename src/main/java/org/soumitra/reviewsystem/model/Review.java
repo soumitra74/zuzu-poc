@@ -6,7 +6,8 @@ import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "review")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

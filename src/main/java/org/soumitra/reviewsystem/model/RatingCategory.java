@@ -5,7 +5,8 @@ import lombok.*;
 
 @Entity
 @Table(name = "rating_category")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

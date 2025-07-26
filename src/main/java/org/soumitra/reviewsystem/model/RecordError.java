@@ -5,7 +5,8 @@ import lombok.*;
 
 @Entity
 @Table(name = "record_errors")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

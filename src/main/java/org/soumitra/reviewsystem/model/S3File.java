@@ -6,7 +6,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "s3_files")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -22,11 +23,17 @@ public class S3File {
     @Column(name = "s3_key", nullable = false, unique = true)
     private String s3Key;
 
-    @Column(name = "processed_at")
-    private LocalDateTime processedAt;
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "finished_at")
+    private LocalDateTime finishedAt;
 
     @Column(name = "record_count")
     private Integer recordCount;
+
+    @Column(name = "page_number")
+    private Integer pageNumber;
 
     @Column(name = "status")
     private String status;

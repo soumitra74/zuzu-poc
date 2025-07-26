@@ -6,7 +6,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "records")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -29,8 +30,11 @@ public class Record {
     @Column(name = "status")
     private String status;
 
-    @Column(name = "processed_at")
-    private LocalDateTime processedAt;
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "finished_at")
+    private LocalDateTime finishedAt;
 
     @Column(name = "error_flag")
     private Boolean errorFlag;

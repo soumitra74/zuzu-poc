@@ -5,7 +5,8 @@ import lombok.*;
 
 @Entity
 @Table(name = "stay_info")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

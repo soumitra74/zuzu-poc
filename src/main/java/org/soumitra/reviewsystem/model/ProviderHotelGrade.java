@@ -5,7 +5,8 @@ import lombok.*;
 
 @Entity
 @Table(name = "provider_hotel_grade")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
