@@ -10,7 +10,7 @@ This microservice retrieves Agoda.com / Booking.com / Expedia reviews from an AW
 ## Project Structure
 
 ```
-review-system-microservice/
+zuzu-poc/
 │
 ├── src/
 │   ├── main/
