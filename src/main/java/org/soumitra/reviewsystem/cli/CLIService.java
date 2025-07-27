@@ -5,6 +5,10 @@ import org.soumitra.reviewsystem.dao.JobRunRepository;
 import org.soumitra.reviewsystem.dao.S3FileRepository;
 import org.soumitra.reviewsystem.dao.RecordRepository;
 import org.soumitra.reviewsystem.dao.RecordErrorRepository;
+import org.soumitra.reviewsystem.dao.ReviewRepository;
+import org.soumitra.reviewsystem.dao.HotelRepository;
+import org.soumitra.reviewsystem.dao.ProviderRepository;
+import org.soumitra.reviewsystem.dao.ReviewerRepository;
 import org.soumitra.reviewsystem.model.JobRun;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
@@ -32,6 +36,18 @@ public class CLIService {
     private RecordErrorRepository recordErrorRepository;
     
     @Autowired
+    private ReviewRepository reviewRepository;
+    
+    @Autowired
+    private HotelRepository hotelRepository;
+    
+    @Autowired
+    private ProviderRepository providerRepository;
+    
+    @Autowired
+    private ReviewerRepository reviewerRepository;
+    
+    @Autowired
     private S3Client s3Client;
 
     public void runJob(String bucket, int pageSize, String triggerType, String notes) {
@@ -42,7 +58,8 @@ public class CLIService {
         
         try {
             JobRunner runner = new JobRunner(jobRunRepository, s3FileRepository, 
-                recordRepository, recordErrorRepository, s3Client, pageSize);
+                recordRepository, recordErrorRepository, reviewRepository, hotelRepository,
+                providerRepository, reviewerRepository, s3Client, pageSize);
             
             String s3Uri = "s3://" + bucket;
             runner.runJob(s3Uri);
@@ -55,9 +72,9 @@ public class CLIService {
     }
 
     public void listJobs(int limit, String status) {
-        System.out.println("📋 Recent job runs (limit: " + limit + ")");
+        System.out.println("Recent job runs (limit: " + limit + ")");
         if (status != null) {
-            System.out.println("🔍 Filtering by status: " + status);
+            System.out.println("Filtering by status: " + status);
         }
         System.out.println();
         
@@ -96,7 +113,7 @@ public class CLIService {
     public void listFiles(String bucket, String prefix) {
         System.out.println("Files in bucket: " + bucket);
         if (prefix != null) {
-            System.out.println("🔍 With prefix: " + prefix);
+            System.out.println("With prefix: " + prefix);
         }
         System.out.println();
         

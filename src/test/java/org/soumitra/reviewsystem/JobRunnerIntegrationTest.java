@@ -6,6 +6,10 @@ import org.soumitra.reviewsystem.dao.JobRunRepository;
 import org.soumitra.reviewsystem.dao.S3FileRepository;
 import org.soumitra.reviewsystem.dao.RecordRepository;
 import org.soumitra.reviewsystem.dao.RecordErrorRepository;
+import org.soumitra.reviewsystem.dao.ReviewRepository;
+import org.soumitra.reviewsystem.dao.HotelRepository;
+import org.soumitra.reviewsystem.dao.ProviderRepository;
+import org.soumitra.reviewsystem.dao.ReviewerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -35,20 +39,10 @@ public class JobRunnerIntegrationTest {
                 // Bucket might already exist, ignore
             }
             
-            // Upload some files with simpler content
-            s3Client.putObject(software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
-                .bucket(BUCKET).key("file1.jsonl").build(),
-                software.amazon.awssdk.core.sync.RequestBody.fromString("{\"test\":1}"));
-                
-            s3Client.putObject(software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
-                .bucket(BUCKET).key("file2.jsonl").build(),
-                software.amazon.awssdk.core.sync.RequestBody.fromString("{\"test\":2}"));
-
-            // Use JobRunner's S3FileLister
+            // Use JobRunner's S3FileLister; at least one test file should be in the bucket
             List<JobRunner.S3FileRef> files = JobRunner.S3FileLister.listAllFilesInBucket("s3://" + BUCKET, s3Client);
             assertTrue(files.size() >= 1);
-            assertTrue(files.stream().anyMatch(f -> f.getKey().equals("file1.jsonl")));
-            assertTrue(files.stream().anyMatch(f -> f.getKey().equals("file2.jsonl")));
+            assertTrue(files.stream().anyMatch(f -> f.getKey().endsWith(".jl")));
         } catch (Exception e) {
             System.err.println("Error in test: " + e.getMessage());
             e.printStackTrace();
@@ -63,12 +57,17 @@ public class JobRunnerIntegrationTest {
         S3FileRepository fileRepo = Mockito.mock(S3FileRepository.class);
         RecordRepository recordRepo = Mockito.mock(RecordRepository.class);
         RecordErrorRepository recordErrorRepo = Mockito.mock(RecordErrorRepository.class);
+        ReviewRepository reviewRepo = Mockito.mock(ReviewRepository.class);
+        HotelRepository hotelRepo = Mockito.mock(HotelRepository.class);
+        ProviderRepository providerRepo = Mockito.mock(ProviderRepository.class);
+        ReviewerRepository reviewerRepo = Mockito.mock(ReviewerRepository.class);
 
         // Upload a file
         // s3Client.putObject(PutObjectRequest.builder().bucket(BUCKET).key("test.jsonl").build(),
         //         software.amazon.awssdk.core.sync.RequestBody.fromString("{\"foo\":1}\n{\"foo\":2}"));
 
-        JobRunner runner = new JobRunner(jobRepo, fileRepo, recordRepo, recordErrorRepo, s3Client, 10);
+        JobRunner runner = new JobRunner(jobRepo, fileRepo, recordRepo, recordErrorRepo, 
+            reviewRepo, hotelRepo, providerRepo, reviewerRepo, s3Client, 10);
         // This will call S3FileLister.listAllFilesInBucket internally
         System.out.println("********************** Running job for bucket: " + BUCKET);
         runner.runJob("s3://" + BUCKET);

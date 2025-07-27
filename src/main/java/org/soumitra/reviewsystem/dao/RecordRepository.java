@@ -32,7 +32,7 @@ public interface RecordRepository extends JpaRepository<Record, Integer> {
     /**
      * Simplified log method for JobRunner
      */
-    default void logRecord(Integer s3FileId, Integer lineNumber, String status, String errorMessage) {
+    default void logNewRecord(Integer s3FileId, Integer jobId, String jsonLine) {
         Record record = new Record();
         
         // Create S3File reference
@@ -42,21 +42,14 @@ public interface RecordRepository extends JpaRepository<Record, Integer> {
         
         // Create JobRun reference
         org.soumitra.reviewsystem.model.JobRun jobRun = new org.soumitra.reviewsystem.model.JobRun();
-        jobRun.setId(1); // TODO: Get actual job ID
+        jobRun.setId(jobId);
         record.setJobRun(jobRun);
         
-        record.setRawData("Line " + lineNumber); // TODO: Store actual JSON data
-        record.setStatus(status);
-        record.setStartedAt(LocalDateTime.now());
-        record.setFinishedAt(LocalDateTime.now());
-        record.setErrorFlag("FAILED".equals(status));
+        record.setRawData(jsonLine);
+        record.setStatus("new");
+        record.setProcessedAt(LocalDateTime.now());
         
-        save(record);
-        
-        // If there's an error, also log to record_errors table
-        if ("FAILED".equals(status) && errorMessage != null) {
-            // TODO: Implement record error logging
-        }
+        save(record);        
     }
     
     /**
