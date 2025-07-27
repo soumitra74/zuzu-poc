@@ -1,6 +1,7 @@
 package org.soumitra.reviewsystem.dao;
 
 import org.soumitra.reviewsystem.model.Record;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -50,6 +51,49 @@ public interface RecordRepository extends JpaRepository<Record, Integer> {
         record.setProcessedAt(LocalDateTime.now());
         
         save(record);        
+    }
+    
+    /**
+     * Find new records with pagination
+     */
+    @Query("SELECT r FROM Record r WHERE r.status = 'new' ORDER BY r.id ASC")
+    List<Record> findNewRecords(Pageable pageable);
+    
+    /**
+     * Find new records with limit (simplified method)
+     */
+    default List<Record> findNewRecords(int limit) {
+        return findNewRecords(org.springframework.data.domain.PageRequest.of(0, limit));
+    }
+    
+    /**
+     * Update record status
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Record r SET r.status = :status, r.processedAt = :processedAt WHERE r.id = :recordId")
+    void updateRecordStatus(@Param("recordId") Integer recordId, @Param("status") String status, @Param("processedAt") LocalDateTime processedAt);
+    
+    /**
+     * Update record status (simplified method)
+     */
+    default void updateRecordStatus(Integer recordId, String status) {
+        updateRecordStatus(recordId, status, LocalDateTime.now());
+    }
+    
+    /**
+     * Update record status with error message
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Record r SET r.status = :status, r.processedAt = :processedAt, r.errorFlag = true WHERE r.id = :recordId")
+    void updateRecordStatusWithError(@Param("recordId") Integer recordId, @Param("status") String status, @Param("processedAt") LocalDateTime processedAt);
+    
+    /**
+     * Update record status with error message (simplified method)
+     */
+    default void updateRecordStatus(Integer recordId, String status, String errorMessage) {
+        updateRecordStatusWithError(recordId, status, LocalDateTime.now());
     }
     
     /**

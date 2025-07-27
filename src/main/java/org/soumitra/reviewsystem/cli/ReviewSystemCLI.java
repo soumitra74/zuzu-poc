@@ -16,6 +16,7 @@ import java.util.concurrent.Callable;
     description = "Review System CLI for processing hotel reviews from S3",
     subcommands = {
         RunJobCommand.class,
+        ProcessRecordsCommand.class,
         ListJobsCommand.class,
         ListFilesCommand.class
     }

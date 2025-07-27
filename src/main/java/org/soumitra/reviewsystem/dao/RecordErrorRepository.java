@@ -1,5 +1,6 @@
 package org.soumitra.reviewsystem.dao;
 
+import org.soumitra.reviewsystem.model.Record;
 import org.soumitra.reviewsystem.model.RecordError;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -7,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RecordErrorRepository extends JpaRepository<RecordError, Integer> {
@@ -31,9 +33,47 @@ public interface RecordErrorRepository extends JpaRepository<RecordError, Intege
     }
     
     /**
+     * Simplified log method for processing errors
+     */
+    default void logRecordError(Integer recordId, String errorMessage) {
+        logRecordError(recordId, "PROCESSING_ERROR", errorMessage, null);
+    }
+    
+    /**
+     * Log record error with Record object and upsert logic
+     */
+    default void logRecordError(Record record, String errorMessage) {
+        // Check if error already exists for this record
+        Optional<RecordError> existingError = findByRecordId(record.getId());
+        
+        if (existingError.isPresent()) {
+            // Update existing error
+            RecordError error = existingError.get();
+            error.setErrorMessage(errorMessage);
+            save(error);
+        } else {
+            // Create new error
+            RecordError recordError = new RecordError();
+            recordError.setRecord(record);
+            recordError.setRecordId(record.getId());
+            recordError.setErrorType("PROCESSING_ERROR");
+            recordError.setErrorMessage(errorMessage);
+            recordError.setTraceback(null);
+            
+            save(recordError);
+        }
+    }
+    
+    /**
+     * Find error by record ID and error type
+     */
+    @Query("SELECT re FROM RecordError re WHERE re.recordId = :recordId AND re.errorType = :errorType")
+    Optional<RecordError> findByRecordIdAndErrorType(@Param("recordId") Integer recordId, @Param("errorType") String errorType);
+    
+    /**
      * Find errors by record ID
      */
-    List<RecordError> findByRecordId(Integer recordId);
+    Optional<RecordError> findByRecordId(Integer recordId);
     
     /**
      * Find errors by error type

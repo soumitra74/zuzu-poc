@@ -1,6 +1,7 @@
 package org.soumitra.reviewsystem.cli;
 
 import org.soumitra.reviewsystem.JobRunner;
+import org.soumitra.reviewsystem.RecordProcessorJob;
 import org.soumitra.reviewsystem.dao.JobRunRepository;
 import org.soumitra.reviewsystem.dao.S3FileRepository;
 import org.soumitra.reviewsystem.dao.RecordRepository;
@@ -67,6 +68,26 @@ public class CLIService {
             System.out.println("Job completed successfully!");
         } catch (Exception e) {
             System.err.println("Job failed: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void processRecords(int batchSize, String triggerType, String notes) {
+        System.out.println("Starting record processing job");
+        System.out.println("Batch size: " + batchSize);
+        System.out.println("Trigger type: " + triggerType);
+        System.out.println("Notes: " + notes);
+        
+        try {
+            RecordProcessorJob processor = new RecordProcessorJob(jobRunRepository, 
+                recordRepository, recordErrorRepository, reviewRepository, hotelRepository,
+                providerRepository, reviewerRepository, batchSize);
+            
+            processor.runJob();
+            
+            System.out.println("Record processing job completed successfully!");
+        } catch (Exception e) {
+            System.err.println("Record processing job failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
