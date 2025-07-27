@@ -39,7 +39,7 @@ public class JobRunner {
 
     public void runJob(String s3Uri) {
         // Create a new job run
-        Integer jobId = jobRepo.insertJob(LocalDateTime.now(), "MANUAL", "RUNNING", "Processing S3 files");
+        Integer jobId = jobRepo.insertJob(LocalDateTime.now(), "MANUAL", "running", "Processing S3 files");
 
         List<S3FileRef> filesToProcess = S3FileLister.listAllFilesInBucket(s3Uri, s3Client);
 
@@ -47,7 +47,7 @@ public class JobRunner {
         int totalRecordsProcessed = 0;
 
         for (S3FileRef file : filesToProcess) {
-            Integer fileId = fileRepo.insertOrUpdateFile(jobId, file.getBucket(), file.getKey(), "RUNNING", null, true);
+            Integer fileId = fileRepo.insertOrUpdateFile(jobId, file.getBucket(), file.getKey(), "running", null, true);
 
             int line = 0;
             boolean fileSuccess = true;
@@ -80,7 +80,7 @@ public class JobRunner {
                 fileSuccess = false;
                 fileErrorMsg = fileEx.getMessage();
             } finally {
-                fileRepo.updateFileStatus(fileId, fileSuccess ? "SUCCESS" : "FAILED", fileErrorMsg, fileRecordCount, false);
+                fileRepo.updateFileStatus(fileId, fileSuccess ? "success" : "failed", fileErrorMsg, fileRecordCount, false);
             }
 
             totalFilesProcessed++;
@@ -88,7 +88,7 @@ public class JobRunner {
         }
 
         // Update job status
-        jobRepo.updateJobStatus(jobId, LocalDateTime.now(), "SUCCESS");
+        jobRepo.updateJobStatus(jobId, LocalDateTime.now(), "success");
     }
 
     public static class S3FileLister {
