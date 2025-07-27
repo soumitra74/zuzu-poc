@@ -12,7 +12,7 @@ spring:
 
 aws:
   s3:
-    bucket: hotel_reviews
+    bucket: hotel-reviews
     region: us-east-1
     access-key: test
     secret-key: test

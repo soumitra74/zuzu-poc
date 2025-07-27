@@ -47,7 +47,7 @@ public class JobRunner {
         int totalRecordsProcessed = 0;
 
         for (S3FileRef file : filesToProcess) {
-            Integer fileId = fileRepo.insertOrUpdateFile(jobId, file.getBucket(), file.getKey(), "running", null, true);
+            Integer fileId = fileRepo.insertOrUpdateFile(jobId, file.getBucket(), file.getKey(), "processing", null, true);
 
             int line = 0;
             boolean fileSuccess = true;
@@ -56,7 +56,7 @@ public class JobRunner {
 
             try {
                 while (true) {
-                    List<String> lines = JsonlPaginator.readJsonLines(file.getBucket(), file.getKey(), line, pageSize);
+                    List<String> lines = JsonlPaginator.readJsonLines(file.getBucket(), file.getKey(), line, pageSize, s3Client);
 
                     if (lines.isEmpty()) break;
 

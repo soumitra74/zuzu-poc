@@ -35,10 +35,10 @@ public class CLIService {
     private S3Client s3Client;
 
     public void runJob(String bucket, int pageSize, String triggerType, String notes) {
-        System.out.println("🚀 Starting job to process reviews from bucket: " + bucket);
-        System.out.println("📄 Page size: " + pageSize);
-        System.out.println("🔧 Trigger type: " + triggerType);
-        System.out.println("📝 Notes: " + notes);
+        System.out.println("Starting job to process reviews from bucket: " + bucket);
+        System.out.println("Page size: " + pageSize);
+        System.out.println("Trigger type: " + triggerType);
+        System.out.println("Notes: " + notes);
         
         try {
             JobRunner runner = new JobRunner(jobRunRepository, s3FileRepository, 
@@ -47,9 +47,9 @@ public class CLIService {
             String s3Uri = "s3://" + bucket;
             runner.runJob(s3Uri);
             
-            System.out.println("✅ Job completed successfully!");
+            System.out.println("Job completed successfully!");
         } catch (Exception e) {
-            System.err.println("❌ Job failed: " + e.getMessage());
+            System.err.println("Job failed: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -94,7 +94,7 @@ public class CLIService {
     }
 
     public void listFiles(String bucket, String prefix) {
-        System.out.println("📁 Files in bucket: " + bucket);
+        System.out.println("Files in bucket: " + bucket);
         if (prefix != null) {
             System.out.println("🔍 With prefix: " + prefix);
         }
@@ -129,7 +129,7 @@ public class CLIService {
             System.out.println("\nTotal files: " + response.contents().size());
             
         } catch (Exception e) {
-            System.err.println("❌ Error listing files: " + e.getMessage());
+            System.err.println("Error listing files: " + e.getMessage());
             e.printStackTrace();
         }
     }

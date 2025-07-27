@@ -41,7 +41,7 @@ CREATE TABLE review (
     review_comment     TEXT,
     review_vote_positive    INTEGER,
     review_vote_negative    INTEGER,
-    review_date        TIMESTAMPTZ,
+    review_date        TIMESTAMP,
     translate_source   VARCHAR(10),
     translate_target   VARCHAR(10),
     is_response_shown  BOOLEAN      DEFAULT FALSE,

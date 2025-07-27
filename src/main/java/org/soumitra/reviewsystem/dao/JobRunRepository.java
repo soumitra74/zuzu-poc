@@ -19,7 +19,7 @@ public interface JobRunRepository extends JpaRepository<JobRun, Integer> {
      */
     default Integer insertJob(LocalDateTime scheduledAt, String triggerType, String status, String notes) {
         JobRun jobRun = new JobRun();
-        jobRun.setStarteddAt(scheduledAt);
+        jobRun.setScheduledAt(scheduledAt);
         jobRun.setStatus(status);
         jobRun.setNotes(notes);
         

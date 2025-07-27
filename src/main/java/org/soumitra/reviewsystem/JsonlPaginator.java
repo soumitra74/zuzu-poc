@@ -12,8 +12,7 @@ import java.util.List;
 
 public class JsonlPaginator {
     
-    public static List<String> readJsonLines(String bucket, String key, int startLine, int pageSize) {
-        S3Client s3Client = S3Client.create();
+    public static List<String> readJsonLines(String bucket, String key, int startLine, int pageSize, S3Client s3Client) {
         List<String> lines = new ArrayList<>();
         
         try {
@@ -47,8 +46,7 @@ public class JsonlPaginator {
         return lines;
     }
     
-    public static List<String> listS3Keys(String bucket) {
-        S3Client s3Client = S3Client.create();
+    public static List<String> listS3Keys(String bucket, S3Client s3Client) {
         List<String> keys = new ArrayList<>();
         
         try {
