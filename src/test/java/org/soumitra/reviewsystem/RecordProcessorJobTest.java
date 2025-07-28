@@ -84,8 +84,7 @@ class RecordProcessorJobTest {
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
         doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
         doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
-        when(jobRunRepository.updateJobStatus(anyInt(), any(LocalDateTime.class), anyString()))
-            .thenReturn(1);
+        doNothing().when(jobRunRepository).updateJobStatus(anyInt(), any(LocalDateTime.class), anyString());
 
         // Mock parser responses
         when(parser.parseHotelReview("valid json 1")).thenReturn(createMockParseResult());
@@ -125,8 +124,7 @@ class RecordProcessorJobTest {
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
         doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
         doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
-        when(jobRunRepository.updateJobStatus(anyInt(), any(LocalDateTime.class), anyString()))
-            .thenReturn(1);
+        doNothing().when(jobRunRepository).updateJobStatus(anyInt(), any(LocalDateTime.class), anyString());
 
         // Mock parser to throw exception
         when(parser.parseHotelReview("invalid json")).thenThrow(new RuntimeException("Parsing failed"));
@@ -147,8 +145,7 @@ class RecordProcessorJobTest {
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
         when(recordRepository.findNewRecords(10)).thenReturn(List.of());
-        when(jobRunRepository.updateJobStatus(anyInt(), any(LocalDateTime.class), anyString()))
-            .thenReturn(1);
+        doNothing().when(jobRunRepository).updateJobStatus(anyInt(), any(LocalDateTime.class), anyString());
 
         // Execute
         recordProcessorJob.runJob();
@@ -172,8 +169,7 @@ class RecordProcessorJobTest {
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
         doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
         doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
-        when(jobRunRepository.updateJobStatus(anyInt(), any(LocalDateTime.class), anyString()))
-            .thenReturn(1);
+        doNothing().when(jobRunRepository).updateJobStatus(anyInt(), any(LocalDateTime.class), anyString());
 
         // Mock parser responses
         when(parser.parseHotelReview("valid json")).thenReturn(createMockParseResult());
@@ -219,8 +215,7 @@ class RecordProcessorJobTest {
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
         doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
         doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
-        when(jobRunRepository.updateJobStatus(anyInt(), any(LocalDateTime.class), anyString()))
-            .thenReturn(1);
+        doNothing().when(jobRunRepository).updateJobStatus(anyInt(), any(LocalDateTime.class), anyString());
 
         // Mock parser responses
         when(parser.parseHotelReview("valid json")).thenReturn(createMockParseResult());

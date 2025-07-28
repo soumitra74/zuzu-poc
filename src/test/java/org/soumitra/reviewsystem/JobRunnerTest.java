@@ -8,6 +8,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.soumitra.reviewsystem.dao.JobRunRepository;
 import org.soumitra.reviewsystem.dao.RecordRepository;
 import org.soumitra.reviewsystem.dao.S3FileRepository;
+import org.soumitra.reviewsystem.util.MockS3Client;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
@@ -34,16 +35,13 @@ class JobRunnerTest {
     @Mock
     private RecordRepository recordRepository;
 
-    @Mock
-    private S3Client s3Client;
-
-    @Mock
-    private ListObjectsV2Response listObjectsResponse;
+    private MockS3Client s3Client;
 
     private JobRunner jobRunner;
 
     @BeforeEach
     void setUp() {
+        s3Client = new MockS3Client();
         jobRunner = new JobRunner(
             jobRunRepository, s3FileRepository, recordRepository,
             s3Client, 10
@@ -54,16 +52,10 @@ class JobRunnerTest {
     void testRunJobWithValidS3Files() throws Exception {
         // Setup test data
         String s3Uri = "s3://test-bucket/test-prefix/";
-        List<S3Object> s3Objects = Arrays.asList(
-            createS3Object("test-prefix/file1.jsonl", 1000L),
-            createS3Object("test-prefix/file2.jsonl", 2000L)
-        );
-
-        // Mock S3 responses
-        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class)))
-            .thenReturn(listObjectsResponse);
-        when(listObjectsResponse.contents()).thenReturn(s3Objects);
-        when(listObjectsResponse.nextContinuationToken()).thenReturn(null);
+        
+        // Add test files to MockS3Client
+        s3Client.addBucketContent("test-bucket", "test-prefix/file1.jsonl", 1000L);
+        s3Client.addBucketContent("test-bucket", "test-prefix/file2.jsonl", 2000L);
 
         // Mock repository responses
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
@@ -90,11 +82,8 @@ class JobRunnerTest {
         // Setup test data
         String s3Uri = "s3://test-bucket/empty-prefix/";
 
-        // Mock S3 responses
-        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class)))
-            .thenReturn(listObjectsResponse);
-        when(listObjectsResponse.contents()).thenReturn(List.of());
-        when(listObjectsResponse.nextContinuationToken()).thenReturn(null);
+        // Clear bucket contents for empty bucket test
+        s3Client.clearBucketContents();
 
         // Mock repository responses
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
@@ -159,7 +148,7 @@ class JobRunnerTest {
         String jsonLine = "{\"test\": \"data\"}";
 
         // Mock repository
-        when(recordRepository.logNewRecord(anyInt(), anyInt(), anyString())).thenReturn(1);
+        doNothing().when(recordRepository).logNewRecord(anyInt(), anyInt(), anyString());
 
         // Execute (using reflection to access private method)
         // For now, we'll test the method indirectly through the public interface
@@ -176,9 +165,9 @@ class JobRunnerTest {
         // Setup test data
         String s3Uri = "s3://test-bucket/test-prefix/";
 
-        // Mock S3 to throw exception
-        when(s3Client.listObjectsV2(any(ListObjectsV2Request.class)))
-            .thenThrow(new RuntimeException("S3 connection failed"));
+        // Configure MockS3Client to throw exception
+        s3Client.setShouldThrowException(true);
+        s3Client.setExceptionMessage("S3 connection failed");
 
         // Mock repository responses
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
