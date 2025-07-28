@@ -5,11 +5,6 @@ import org.mockito.Mockito;
 import org.soumitra.reviewsystem.dao.JobRunRepository;
 import org.soumitra.reviewsystem.dao.S3FileRepository;
 import org.soumitra.reviewsystem.dao.RecordRepository;
-import org.soumitra.reviewsystem.dao.RecordErrorRepository;
-import org.soumitra.reviewsystem.dao.ReviewRepository;
-import org.soumitra.reviewsystem.dao.HotelRepository;
-import org.soumitra.reviewsystem.dao.ProviderRepository;
-import org.soumitra.reviewsystem.dao.ReviewerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -56,11 +51,6 @@ public class JobRunnerIntegrationTest {
         JobRunRepository jobRepo = Mockito.mock(JobRunRepository.class);
         S3FileRepository fileRepo = Mockito.mock(S3FileRepository.class);
         RecordRepository recordRepo = Mockito.mock(RecordRepository.class);
-        RecordErrorRepository recordErrorRepo = Mockito.mock(RecordErrorRepository.class);
-        ReviewRepository reviewRepo = Mockito.mock(ReviewRepository.class);
-        HotelRepository hotelRepo = Mockito.mock(HotelRepository.class);
-        ProviderRepository providerRepo = Mockito.mock(ProviderRepository.class);
-        ReviewerRepository reviewerRepo = Mockito.mock(ReviewerRepository.class);
 
         // Upload a file
         // s3Client.putObject(PutObjectRequest.builder().bucket(BUCKET).key("test.jsonl").build(),
