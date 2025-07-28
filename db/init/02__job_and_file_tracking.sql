@@ -24,7 +24,7 @@ CREATE TABLE records (
     id              SERIAL PRIMARY KEY,
     s3_file_id      INTEGER REFERENCES s3_files(id),
     job_run_id      INTEGER REFERENCES job_runs(id),
-    raw_data        JSONB,
+    raw_data        TEXT,
     status          TEXT CHECK (status IN ('new', 'processing', 'success', 'partial', 'failed')),
     started_at      TIMESTAMP,
     finished_at     TIMESTAMP,

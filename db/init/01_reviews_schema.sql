@@ -1,6 +1,6 @@
 -- 1. Reference / lookup tables
 CREATE TABLE provider (
-    provider_id      SMALLINT   PRIMARY KEY,
+    provider_id      SMALLINT   GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     external_id      SMALLINT   NOT NULL UNIQUE,
     provider_name    TEXT       NOT NULL
 );
@@ -12,13 +12,16 @@ CREATE TABLE rating_category (
 
 -- 2. Core entity tables
 CREATE TABLE hotel (
-    hotel_id     INTEGER     PRIMARY KEY,
-    external_id  INTEGER     NOT NULL UNIQUE,
+    hotel_id     INTEGER     GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    external_id  INTEGER     NOT NULL,
+    provider_id  SMALLINT    NOT NULL REFERENCES provider (provider_id),
     hotel_name   TEXT        NOT NULL
 );
 
+ALTER TABLE hotel ADD CONSTRAINT hotel_unique_key UNIQUE (external_id, provider_id);
+
 CREATE TABLE reviewer (
-    reviewer_id  BIGSERIAL   PRIMARY KEY,
+    reviewer_id  BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     display_name TEXT,                           
     country_id   INTEGER,
     country_name VARCHAR(255),
@@ -29,7 +32,7 @@ CREATE TABLE reviewer (
 
 -- 3. Review-specific tables
 CREATE TABLE review (
-    review_id          BIGINT      PRIMARY KEY,
+    review_id          BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     review_external_id BIGINT      NOT NULL,
     hotel_id           INTEGER     REFERENCES hotel (hotel_id),
     provider_id        SMALLINT    REFERENCES provider (provider_id),
