@@ -5,11 +5,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
 import org.soumitra.reviewsystem.cli.ReviewSystemCLI;
 import picocli.CommandLine;
 import picocli.spring.PicocliSpringFactory;
 
 @SpringBootApplication
+@ComponentScan(basePackages = {"org.soumitra.reviewsystem", "org.soumitra.reviewsystem.controller"})
 public class ReviewSystemApplication implements CommandLineRunner {
 
     @Autowired
