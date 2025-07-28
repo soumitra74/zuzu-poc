@@ -10,5 +10,6 @@ public class ProviderHotelGradeDto {
     private Integer hotelId;
     private Short providerId;
     private Short categoryId;
+    private String categoryName;
     private Double gradeValue;
 } 

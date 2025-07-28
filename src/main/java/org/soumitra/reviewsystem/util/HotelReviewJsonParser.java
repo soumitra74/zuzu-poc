@@ -259,7 +259,7 @@ public class HotelReviewJsonParser {
                             grades.add(ProviderHotelGradeDto.builder()
                                     .hotelId(hotel.getHotelId())
                                     .providerId(providerId)
-                                    .categoryId(null) // Would need category mapping
+                                    .categoryName(categoryName) // Store category name instead of ID
                                     .gradeValue(gradeValue)
                                     .build());
                         }

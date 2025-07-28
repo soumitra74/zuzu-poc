@@ -14,6 +14,9 @@ import org.soumitra.reviewsystem.dao.HotelRepository;
 import org.soumitra.reviewsystem.dao.ProviderRepository;
 import org.soumitra.reviewsystem.dao.ReviewerRepository;
 import org.soumitra.reviewsystem.dao.StayInfoRepository;
+import org.soumitra.reviewsystem.dao.ProviderHotelSummaryRepository;
+import org.soumitra.reviewsystem.dao.ProviderHotelGradeRepository;
+import org.soumitra.reviewsystem.dao.RatingCategoryRepository;
 
 // Model classes
 import org.soumitra.reviewsystem.model.Record;
@@ -22,6 +25,9 @@ import org.soumitra.reviewsystem.model.Hotel;
 import org.soumitra.reviewsystem.model.Provider;
 import org.soumitra.reviewsystem.model.Reviewer;
 import org.soumitra.reviewsystem.model.StayInfo;
+import org.soumitra.reviewsystem.model.ProviderHotelSummary;
+import org.soumitra.reviewsystem.model.ProviderHotelGrade;
+import org.soumitra.reviewsystem.model.RatingCategory;
 import org.soumitra.reviewsystem.util.HotelReviewJsonParser;
 
 public class RecordProcessorJob {
@@ -34,6 +40,9 @@ public class RecordProcessorJob {
     private final ProviderRepository providerRepo;
     private final ReviewerRepository reviewerRepo;
     private final StayInfoRepository stayInfoRepo;
+    private final ProviderHotelSummaryRepository providerHotelSummaryRepo;
+    private final ProviderHotelGradeRepository providerHotelGradeRepo;
+    private final RatingCategoryRepository ratingCategoryRepo;
 
     private final int pageSize;
     private final HotelReviewJsonParser parser;
@@ -42,7 +51,9 @@ public class RecordProcessorJob {
         RecordRepository recordRepo, RecordErrorRepository recordErrorRepo, 
         ReviewRepository reviewRepo, HotelRepository hotelRepo, 
         ProviderRepository providerRepo, ReviewerRepository reviewerRepo,
-        StayInfoRepository stayInfoRepo, HotelReviewJsonParser parser, int pageSize) {
+        StayInfoRepository stayInfoRepo, ProviderHotelSummaryRepository providerHotelSummaryRepo,
+        ProviderHotelGradeRepository providerHotelGradeRepo, RatingCategoryRepository ratingCategoryRepo,
+        HotelReviewJsonParser parser, int pageSize) {
         this.jobRepo = jobRepo;
         this.recordRepo = recordRepo;
         this.recordErrorRepo = recordErrorRepo;
@@ -51,6 +62,9 @@ public class RecordProcessorJob {
         this.providerRepo = providerRepo;
         this.reviewerRepo = reviewerRepo;
         this.stayInfoRepo = stayInfoRepo;
+        this.providerHotelSummaryRepo = providerHotelSummaryRepo;
+        this.providerHotelGradeRepo = providerHotelGradeRepo;
+        this.ratingCategoryRepo = ratingCategoryRepo;
         this.parser = parser;
         this.pageSize = pageSize > 0 ? pageSize : 10;
     }
@@ -117,6 +131,10 @@ public class RecordProcessorJob {
         upsertReviewFromDto(hotelReview.getReview(), hotel, provider, reviewer);
 
         upsertStayInfoFromDto(hotelReview.getStayInfo(), hotel, provider, reviewer);
+        
+        // Extract and upsert provider hotel summaries and grades
+        upsertProviderHotelSummariesFromDto(hotelReview.getProviderHotelSummaries(), hotel, provider);
+        upsertProviderHotelGradesFromDto(hotelReview.getProviderHotelGrades(), hotel, provider);
     }
     
     /**
@@ -241,6 +259,99 @@ public class RecordProcessorJob {
             
         System.out.println("Creating new stay info for review: " + review.getReviewId());
         stayInfoRepo.save(newStayInfo);
+    }
+    
+    /**
+     * Upsert provider hotel summaries from DTO
+     */
+    private void upsertProviderHotelSummariesFromDto(List<org.soumitra.reviewsystem.dto.ProviderHotelSummaryDto> summaries, Hotel hotel, Provider provider) {
+        if (summaries == null || summaries.isEmpty()) {
+            System.out.println("No provider hotel summaries available, skipping");
+            return;
+        }
+        
+        for (org.soumitra.reviewsystem.dto.ProviderHotelSummaryDto summaryDto : summaries) {
+            // Find the provider for this summary
+            Provider summaryProvider = providerRepo.findByExternalId(summaryDto.getProviderId())
+                .orElse(provider); // Fallback to the main provider if not found
+            
+            // Check if summary already exists
+            if (providerHotelSummaryRepo.existsByHotelHotelIdAndProviderProviderId(hotel.getHotelId(), summaryProvider.getProviderId())) {
+                System.out.println("Provider hotel summary already exists for hotel: " + hotel.getHotelId() + ", provider: " + summaryProvider.getProviderId());
+                continue;
+            }
+            
+            ProviderHotelSummary newSummary = ProviderHotelSummary.builder()
+                .hotel(hotel)
+                .provider(summaryProvider)
+                .overallScore(summaryDto.getOverallScore())
+                .reviewCount(summaryDto.getReviewCount())
+                .build();
+                
+            System.out.println("Creating new provider hotel summary for hotel: " + hotel.getHotelId() + ", provider: " + summaryProvider.getProviderId());
+            providerHotelSummaryRepo.save(newSummary);
+        }
+    }
+    
+    /**
+     * Upsert provider hotel grades from DTO
+     */
+    private void upsertProviderHotelGradesFromDto(List<org.soumitra.reviewsystem.dto.ProviderHotelGradeDto> grades, Hotel hotel, Provider provider) {
+        if (grades == null || grades.isEmpty()) {
+            System.out.println("No provider hotel grades available, skipping");
+            return;
+        }
+        
+        for (org.soumitra.reviewsystem.dto.ProviderHotelGradeDto gradeDto : grades) {
+            // Find the provider for this grade
+            Provider gradeProvider = providerRepo.findByExternalId(gradeDto.getProviderId())
+                .orElse(provider); // Fallback to the main provider if not found
+            
+            // Upsert the rating category
+            RatingCategory category = upsertRatingCategoryFromName(gradeDto.getCategoryName());
+            
+            if (category == null) {
+                System.out.println("Could not create rating category for: " + gradeDto.getCategoryName());
+                continue;
+            }
+            
+            // Check if grade already exists
+            if (providerHotelGradeRepo.existsByHotelHotelIdAndProviderProviderIdAndCategoryCategoryId(
+                hotel.getHotelId(), gradeProvider.getProviderId(), category.getCategoryId())) {
+                System.out.println("Provider hotel grade already exists for hotel: " + hotel.getHotelId() + 
+                    ", provider: " + gradeProvider.getProviderId() + ", category: " + category.getCategoryId());
+                continue;
+            }
+            
+            ProviderHotelGrade newGrade = ProviderHotelGrade.builder()
+                .hotel(hotel)
+                .provider(gradeProvider)
+                .category(category)
+                .gradeValue(gradeDto.getGradeValue())
+                .build();
+                
+            System.out.println("Creating new provider hotel grade for hotel: " + hotel.getHotelId() + 
+                ", provider: " + gradeProvider.getProviderId() + ", category: " + category.getCategoryName());
+            providerHotelGradeRepo.save(newGrade);
+        }
+    }
+    
+    /**
+     * Upsert rating category from name
+     */
+    private RatingCategory upsertRatingCategoryFromName(String categoryName) {
+        if (categoryName == null || categoryName.trim().isEmpty()) {
+            return null;
+        }
+        
+        return ratingCategoryRepo.findByCategoryName(categoryName)
+            .orElseGet(() -> {
+                RatingCategory newCategory = RatingCategory.builder()
+                    .categoryName(categoryName)
+                    .build();
+                System.out.println("Creating new rating category: " + categoryName);
+                return ratingCategoryRepo.save(newCategory);
+            });
     }
         
     /**

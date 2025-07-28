@@ -52,6 +52,15 @@ public class CLIService {
     private org.soumitra.reviewsystem.dao.StayInfoRepository stayInfoRepository;
     
     @Autowired
+    private org.soumitra.reviewsystem.dao.ProviderHotelSummaryRepository providerHotelSummaryRepository;
+    
+    @Autowired
+    private org.soumitra.reviewsystem.dao.ProviderHotelGradeRepository providerHotelGradeRepository;
+    
+    @Autowired
+    private org.soumitra.reviewsystem.dao.RatingCategoryRepository ratingCategoryRepository;
+    
+    @Autowired
     private S3Client s3Client;
     
     @Autowired
@@ -86,7 +95,8 @@ public class CLIService {
         try {
             RecordProcessorJob processor = new RecordProcessorJob(jobRunRepository, 
                 recordRepository, recordErrorRepository, reviewRepository, hotelRepository,
-                providerRepository, reviewerRepository, stayInfoRepository, hotelReviewJsonParser, batchSize);
+                providerRepository, reviewerRepository, stayInfoRepository, providerHotelSummaryRepository,
+                providerHotelGradeRepository, ratingCategoryRepository, hotelReviewJsonParser, batchSize);
             
             processor.runJob();
             

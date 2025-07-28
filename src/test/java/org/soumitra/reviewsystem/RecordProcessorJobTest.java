@@ -48,6 +48,15 @@ class RecordProcessorJobTest {
     private org.soumitra.reviewsystem.dao.StayInfoRepository stayInfoRepository;
 
     @Mock
+    private org.soumitra.reviewsystem.dao.ProviderHotelSummaryRepository providerHotelSummaryRepository;
+
+    @Mock
+    private org.soumitra.reviewsystem.dao.ProviderHotelGradeRepository providerHotelGradeRepository;
+
+    @Mock
+    private org.soumitra.reviewsystem.dao.RatingCategoryRepository ratingCategoryRepository;
+
+    @Mock
     private HotelReviewJsonParser parser;
 
     private RecordProcessorJob recordProcessorJob;
@@ -57,7 +66,8 @@ class RecordProcessorJobTest {
         recordProcessorJob = new RecordProcessorJob(
             jobRunRepository, recordRepository, recordErrorRepository,
             reviewRepository, hotelRepository, providerRepository, reviewerRepository,
-            stayInfoRepository, parser, 10
+            stayInfoRepository, providerHotelSummaryRepository, providerHotelGradeRepository,
+            ratingCategoryRepository, parser, 10
         );
     }
 

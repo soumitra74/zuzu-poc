@@ -56,6 +56,15 @@ public class JobController {
     private org.soumitra.reviewsystem.dao.StayInfoRepository stayInfoRepository;
 
     @Autowired
+    private org.soumitra.reviewsystem.dao.ProviderHotelSummaryRepository providerHotelSummaryRepository;
+
+    @Autowired
+    private org.soumitra.reviewsystem.dao.ProviderHotelGradeRepository providerHotelGradeRepository;
+
+    @Autowired
+    private org.soumitra.reviewsystem.dao.RatingCategoryRepository ratingCategoryRepository;
+
+    @Autowired
     private S3Client s3Client;
 
     @Autowired
@@ -124,6 +133,9 @@ public class JobController {
                 providerRepository,
                 reviewerRepository,
                 stayInfoRepository,
+                providerHotelSummaryRepository,
+                providerHotelGradeRepository,
+                ratingCategoryRepository,
                 hotelReviewJsonParser,
                 request.getPageSize() != null ? request.getPageSize() : 10
             );
