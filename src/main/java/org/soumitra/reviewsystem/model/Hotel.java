@@ -12,11 +12,16 @@ import lombok.*;
 @Builder
 public class Hotel {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "hotel_id")
     private Integer hotelId;
 
-    @Column(name = "external_id", nullable = false, unique = true)
+    @Column(name = "external_id", nullable = false)
     private Integer externalId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "provider_id", nullable = false)
+    private Provider provider;
 
     @Column(name = "hotel_name", nullable = false)
     private String hotelName;

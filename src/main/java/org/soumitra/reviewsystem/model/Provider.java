@@ -12,6 +12,7 @@ import lombok.*;
 @Builder
 public class Provider {
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "provider_id")
     private Short providerId;
 

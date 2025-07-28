@@ -50,6 +50,9 @@ public class CLIService {
     
     @Autowired
     private S3Client s3Client;
+    
+    @Autowired
+    private org.soumitra.reviewsystem.util.HotelReviewJsonParser hotelReviewJsonParser;
 
     public void runJob(String bucket, int pageSize, String triggerType, String notes) {
         System.out.println("Starting job to process reviews from bucket: " + bucket);
@@ -81,7 +84,7 @@ public class CLIService {
         try {
             RecordProcessorJob processor = new RecordProcessorJob(jobRunRepository, 
                 recordRepository, recordErrorRepository, reviewRepository, hotelRepository,
-                providerRepository, reviewerRepository, batchSize);
+                providerRepository, reviewerRepository, hotelReviewJsonParser, batchSize);
             
             processor.runJob();
             

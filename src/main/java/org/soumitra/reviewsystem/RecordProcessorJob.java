@@ -1,11 +1,9 @@
 package org.soumitra.reviewsystem;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.ArrayList;
 
 // Repository interfaces
 import org.soumitra.reviewsystem.dao.JobRunRepository;
@@ -22,6 +20,7 @@ import org.soumitra.reviewsystem.model.Review;
 import org.soumitra.reviewsystem.model.Hotel;
 import org.soumitra.reviewsystem.model.Provider;
 import org.soumitra.reviewsystem.model.Reviewer;
+import org.soumitra.reviewsystem.util.HotelReviewJsonParser;
 
 // JSON parsing
 import com.fasterxml.jackson.databind.JsonNode;
@@ -39,12 +38,13 @@ public class RecordProcessorJob {
 
     private final int pageSize;
     private final ObjectMapper objectMapper;
+    private final HotelReviewJsonParser parser;
 
     public RecordProcessorJob (JobRunRepository jobRepo,  
         RecordRepository recordRepo, RecordErrorRepository recordErrorRepo, 
         ReviewRepository reviewRepo, HotelRepository hotelRepo, 
         ProviderRepository providerRepo, ReviewerRepository reviewerRepo,
-        int pageSize) {
+        HotelReviewJsonParser parser, int pageSize) {
         this.jobRepo = jobRepo;
         this.recordRepo = recordRepo;
         this.recordErrorRepo = recordErrorRepo;
@@ -52,6 +52,7 @@ public class RecordProcessorJob {
         this.hotelRepo = hotelRepo;
         this.providerRepo = providerRepo;
         this.reviewerRepo = reviewerRepo;
+        this.parser = parser;
         this.pageSize = pageSize > 0 ? pageSize : 10;
         this.objectMapper = new ObjectMapper();
     }
@@ -68,10 +69,10 @@ public class RecordProcessorJob {
         while(records.size() > 0) {
             for (Record record : records) {
                 try {
+                    recordRepo.updateRecordStatus(record.getId(), "processing");
                     processRecord(record.getRawData());
-                    recordRepo.updateRecordStatus(record.getId(), "processed");
+                    recordRepo.updateRecordStatus(record.getId(), "success");
                 } catch (Exception recEx) {
-                    recEx.printStackTrace();
                     recordRepo.updateRecordStatus(record.getId(), "failed", recEx.getMessage());
                     recordErrorRepo.logRecordError(record, recEx.getMessage());
                 } finally {
@@ -94,110 +95,249 @@ public class RecordProcessorJob {
      */
     private void processRecord(String jsonLine) throws Exception {
         try {
-            JsonNode jsonNode = objectMapper.readTree(jsonLine);
+            HotelReviewJsonParser.HotelReviewParseResult hotelReview =
+                this.parser.parseHotelReview(jsonLine);
             
             System.out.println("Processing record: " + jsonLine);
-            // Extract and upsert hotel
-            Hotel hotel = upsertHotel(jsonNode);
             
-            // Extract and upsert provider
-            Provider provider = upsertProvider(jsonNode);
+            // Extract and upsert provider first (hotels depend on providers)
+            Provider provider = upsertProviderFromDto(hotelReview.getProvider());
+            
+            // Extract and upsert hotel (now with provider relationship)
+            Hotel hotel = upsertHotelFromDto(hotelReview.getHotel(), provider);
             
             // Extract and upsert reviewer
-            Reviewer reviewer = upsertReviewer(jsonNode);
+            Reviewer reviewer = upsertReviewerFromDto(hotelReview.getReviewer());
             
             // Extract and upsert review
-            upsertReview(jsonNode, hotel, provider, reviewer);
+            upsertReviewFromDto(hotelReview.getReview(), hotel, provider, reviewer);
             
         } catch (Exception e) {
+            e.printStackTrace();
             throw new RuntimeException("Failed to parse and store record: " + e.getMessage(), e);
         }
     }
     
     /**
-     * Upsert hotel data
+     * Upsert provider from DTO
      */
-    private Hotel upsertHotel(JsonNode jsonNode) {
-        JsonNode hotelNode = jsonNode.get("hotel");
-        if (hotelNode == null) {
-            throw new RuntimeException("Hotel data is missing");
-        }
-        
-        System.out.println("Upserting hotel: " + hotelNode);
+    private Provider upsertProviderFromDto(org.soumitra.reviewsystem.dto.ProviderDto providerDto) {
+        return providerRepo.findByExternalId(providerDto.getExternalId())
+            .orElseGet(() -> {
+                Provider newProvider = Provider.builder()
+                    .externalId(providerDto.getExternalId())
+                    .providerName(providerDto.getProviderName())
+                    .build();
+                System.out.println("Creating new provider: " + newProvider);
+                return providerRepo.save(newProvider);
+            });
+    }
 
-        Integer hotelExternalId = hotelNode.get("hotel_id") != null ? 
-            hotelNode.get("hotel_id").asInt() : null;
-        String hotelName = hotelNode.get("hotel_name") != null ? 
-            hotelNode.get("hotel_name").asText() : null;
-            
-        if (hotelExternalId == null || hotelName == null) {
-            throw new RuntimeException("Hotel ID or name is missing");
-        }
-        
-        // Check if hotel exists
-        return hotelRepo.findByExternalId(hotelExternalId)
+    /**
+     * Upsert hotel from DTO
+     */
+    private Hotel upsertHotelFromDto(org.soumitra.reviewsystem.dto.HotelDto hotelDto, Provider provider) {
+        return hotelRepo.findByExternalIdAndProvider(hotelDto.getExternalId(), provider)
             .orElseGet(() -> {
                 Hotel newHotel = Hotel.builder()
-                    .externalId(hotelExternalId)
-                    .hotelName(hotelName)
+                    .externalId(hotelDto.getExternalId())
+                    .provider(provider)
+                    .hotelName(hotelDto.getHotelName())
                     .build();
-                System.out.println("New hotel: " + newHotel);
+                System.out.println("Creating new hotel: " + newHotel);
                 return hotelRepo.save(newHotel);
             });
     }
+
+    /**
+     * Upsert reviewer from DTO
+     */
+    private Reviewer upsertReviewerFromDto(org.soumitra.reviewsystem.dto.ReviewerDto reviewerDto) {
+        return reviewerRepo.findByDisplayNameAndCountryName(reviewerDto.getDisplayName(), reviewerDto.getCountryName())
+            .orElseGet(() -> {
+                Reviewer newReviewer = Reviewer.builder()
+                    .displayName(reviewerDto.getDisplayName())
+                    .countryName(reviewerDto.getCountryName())
+                    .countryId(reviewerDto.getCountryId())
+                    .flagCode(reviewerDto.getFlagCode())
+                    .isExpert(reviewerDto.getIsExpert())
+                    .reviewsWritten(reviewerDto.getReviewsWritten())
+                    .build();
+                System.out.println("Creating new reviewer: " + newReviewer);
+                return reviewerRepo.save(newReviewer);
+            });
+    }
+
+    /**
+     * Upsert review from DTO
+     */
+    private void upsertReviewFromDto(org.soumitra.reviewsystem.dto.ReviewDto reviewDto, Hotel hotel, Provider provider, Reviewer reviewer) {
+        if (reviewRepo.existsByReviewExternalId(reviewDto.getReviewExternalId())) {
+            System.out.println("Review already exists, skipping: " + reviewDto.getReviewExternalId());
+            return;
+        }
+        
+        Review newReview = Review.builder()
+            .reviewExternalId(reviewDto.getReviewExternalId())
+            .hotel(hotel)
+            .provider(provider)
+            .reviewer(reviewer)
+            .ratingRaw(reviewDto.getRatingRaw())
+            .ratingText(reviewDto.getRatingText())
+            .ratingFormatted(reviewDto.getRatingFormatted())
+            .reviewTitle(reviewDto.getReviewTitle())
+            .reviewComment(reviewDto.getReviewComment())
+            .reviewVotePositive(reviewDto.getReviewVotePositive())
+            .reviewVoteNegative(reviewDto.getReviewVoteNegative())
+            .reviewDate(reviewDto.getReviewDate())
+            .translateSource(reviewDto.getTranslateSource())
+            .translateTarget(reviewDto.getTranslateTarget())
+            .isResponseShown(reviewDto.getIsResponseShown())
+            .responderName(reviewDto.getResponderName())
+            .responseText(reviewDto.getResponseText())
+            .responseDateText(reviewDto.getResponseDateText())
+            .responseDateFmt(reviewDto.getResponseDateFmt())
+            .checkInMonthYr(reviewDto.getCheckInMonthYr())
+            .build();
+            
+        System.out.println("Creating new review: " + reviewDto.getReviewExternalId());
+        reviewRepo.save(newReview);
+    }
     
     /**
-     * Upsert provider data
+     * Extract hotel ID from JSON
+     */
+    private Integer extractHotelId(JsonNode jsonNode) {
+        // Check for flattened structure first (hotelId at root level)
+        if (jsonNode.has("hotelId")) {
+            return jsonNode.get("hotelId").asInt();
+        }
+        
+        // Fallback to nested structure
+        JsonNode hotelNode = jsonNode.get("hotel");
+        if (hotelNode != null && hotelNode.has("hotel_id")) {
+            return hotelNode.get("hotel_id").asInt();
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Extract hotel name from JSON
+     */
+    private String extractHotelName(JsonNode jsonNode) {
+        // Check for flattened structure first (hotelName at root level)
+        if (jsonNode.has("hotelName")) {
+            return jsonNode.get("hotelName").asText();
+        }
+        
+        // Fallback to nested structure
+        JsonNode hotelNode = jsonNode.get("hotel");
+        if (hotelNode != null && hotelNode.has("hotel_name")) {
+            return hotelNode.get("hotel_name").asText();
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Upsert provider data - handles flattened JSON structure
      */
     private Provider upsertProvider(JsonNode jsonNode) {
-        JsonNode providerNode = jsonNode.get("provider");
-        if (providerNode == null) {
-            throw new RuntimeException("Provider data is missing");
-        }
+        // Try different possible locations for provider data
+        Short providerExternalId = extractProviderId(jsonNode);
+        String providerName = extractProviderName(jsonNode);
         
-        Short providerExternalId = providerNode.get("provider_id") != null ? 
-            providerNode.get("provider_id").shortValue() : null;
-        String providerName = providerNode.get("provider_name") != null ? 
-            providerNode.get("provider_name").asText() : null;
-            
         if (providerExternalId == null || providerName == null) {
-            throw new RuntimeException("Provider ID or name is missing");
+            throw new RuntimeException("Provider ID or name is missing. Available fields: " + jsonNode.fieldNames());
         }
         
-        // Check if provider exists
+        System.out.println("Upserting provider: ExternalID=" + providerExternalId + ", Name=" + providerName);
+        
+        // Check if provider exists by external ID
         return providerRepo.findByExternalId(providerExternalId)
             .orElseGet(() -> {
                 Provider newProvider = Provider.builder()
                     .externalId(providerExternalId)
                     .providerName(providerName)
                     .build();
+                System.out.println("Creating new provider: " + newProvider);
                 return providerRepo.save(newProvider);
             });
     }
     
     /**
-     * Upsert reviewer data
+     * Extract provider ID from JSON
      */
-    private Reviewer upsertReviewer(JsonNode jsonNode) {
-        JsonNode reviewerNode = jsonNode.get("reviewer");
-        if (reviewerNode == null) {
-            throw new RuntimeException("Reviewer data is missing");
+    private Short extractProviderId(JsonNode jsonNode) {
+        // Check for provider info in comment section
+        JsonNode commentNode = jsonNode.get("comment");
+        if (commentNode != null && commentNode.has("providerId")) {
+            return commentNode.get("providerId").shortValue();
         }
         
-        System.out.println("Upserting reviewer: " + reviewerNode);
-
-        String displayName = reviewerNode.get("display_name") != null ? 
-            reviewerNode.get("display_name").asText() : null;
-        String countryName = reviewerNode.get("country_name") != null ? 
-            reviewerNode.get("country_name").asText() : null;
-        Integer countryId = reviewerNode.get("country_id") != null ? 
-            reviewerNode.get("country_id").asInt() : null;
-        String flagCode = reviewerNode.get("flag_code") != null ? 
-            reviewerNode.get("flag_code").asText() : null;
-        Boolean isExpert = reviewerNode.get("is_expert") != null ? 
-            reviewerNode.get("is_expert").asBoolean() : null;
-        Integer reviewsWritten = reviewerNode.get("reviews_written") != null ? 
-            reviewerNode.get("reviews_written").asInt() : null;
+        // Fallback to nested structure
+        JsonNode providerNode = jsonNode.get("provider");
+        if (providerNode != null && providerNode.has("provider_id")) {
+            return providerNode.get("provider_id").shortValue();
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Extract provider name from JSON
+     */
+    private String extractProviderName(JsonNode jsonNode) {
+        // Check for platform field at root level
+        if (jsonNode.has("platform")) {
+            return jsonNode.get("platform").asText();
+        }
+        
+        // Check for provider info in comment section
+        JsonNode commentNode = jsonNode.get("comment");
+        if (commentNode != null && commentNode.has("reviewProviderText")) {
+            return commentNode.get("reviewProviderText").asText();
+        }
+        
+        // Fallback to nested structure
+        JsonNode providerNode = jsonNode.get("provider");
+        if (providerNode != null && providerNode.has("provider_name")) {
+            return providerNode.get("provider_name").asText();
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Upsert reviewer data - handles flattened JSON structure
+     */
+    private Reviewer upsertReviewer(JsonNode jsonNode) {
+        // Try to find reviewer info in comment section
+        JsonNode commentNode = jsonNode.get("comment");
+        if (commentNode == null) {
+            throw new RuntimeException("Comment section is missing");
+        }
+        
+        JsonNode reviewerInfoNode = commentNode.get("reviewerInfo");
+        if (reviewerInfoNode == null) {
+            throw new RuntimeException("Reviewer info is missing");
+        }
+        
+        System.out.println("Upserting reviewer: " + reviewerInfoNode);
+        
+        String displayName = reviewerInfoNode.get("displayMemberName") != null ? 
+            reviewerInfoNode.get("displayMemberName").asText() : null;
+        String countryName = reviewerInfoNode.get("countryName") != null ? 
+            reviewerInfoNode.get("countryName").asText() : null;
+        Integer countryId = reviewerInfoNode.get("countryId") != null ? 
+            reviewerInfoNode.get("countryId").asInt() : null;
+        String flagCode = reviewerInfoNode.get("flagName") != null ? 
+            reviewerInfoNode.get("flagName").asText() : null;
+        Boolean isExpert = reviewerInfoNode.get("isExpertReviewer") != null ? 
+            reviewerInfoNode.get("isExpertReviewer").asBoolean() : null;
+        Integer reviewsWritten = reviewerInfoNode.get("reviewerReviewedCount") != null ? 
+            reviewerInfoNode.get("reviewerReviewedCount").asInt() : null;
             
         if (displayName == null) {
             throw new RuntimeException("Reviewer display name is missing");
@@ -214,16 +354,22 @@ public class RecordProcessorJob {
                     .isExpert(isExpert)
                     .reviewsWritten(reviewsWritten)
                     .build();
+                System.out.println("Creating new reviewer: " + newReviewer);
                 return reviewerRepo.save(newReviewer);
             });
     }
     
     /**
-     * Upsert review data
+     * Upsert review data - handles flattened JSON structure
      */
     private void upsertReview(JsonNode jsonNode, Hotel hotel, Provider provider, Reviewer reviewer) {
-        Long reviewExternalId = jsonNode.get("review_id") != null ? 
-            jsonNode.get("review_id").asLong() : null;
+        JsonNode commentNode = jsonNode.get("comment");
+        if (commentNode == null) {
+            throw new RuntimeException("Comment section is missing");
+        }
+        
+        Long reviewExternalId = commentNode.get("hotelReviewId") != null ? 
+            commentNode.get("hotelReviewId").asLong() : null;
             
         if (reviewExternalId == null) {
             throw new RuntimeException("Review ID is missing");
@@ -231,50 +377,47 @@ public class RecordProcessorJob {
         
         // Check if review already exists
         if (reviewRepo.existsByReviewExternalId(reviewExternalId)) {
+            System.out.println("Review already exists, skipping: " + reviewExternalId);
             return; // Skip if review already exists
         }
         
-        // Extract review data
-        Double ratingRaw = jsonNode.get("rating_raw") != null ? 
-            jsonNode.get("rating_raw").asDouble() : null;
-        String ratingText = jsonNode.get("rating_text") != null ? 
-            jsonNode.get("rating_text").asText() : null;
-        String ratingFormatted = jsonNode.get("rating_formatted") != null ? 
-            jsonNode.get("rating_formatted").asText() : null;
-        String reviewTitle = jsonNode.get("review_title") != null ? 
-            jsonNode.get("review_title").asText() : null;
-        String reviewComment = jsonNode.get("review_comment") != null ? 
-            jsonNode.get("review_comment").asText() : null;
-        Integer reviewVotePositive = jsonNode.get("review_vote_positive") != null ? 
-            jsonNode.get("review_vote_positive").asInt() : null;
-        Integer reviewVoteNegative = jsonNode.get("review_vote_negative") != null ? 
-            jsonNode.get("review_vote_negative").asInt() : null;
-        String translateSource = jsonNode.get("translate_source") != null ? 
-            jsonNode.get("translate_source").asText() : null;
-        String translateTarget = jsonNode.get("translate_target") != null ? 
-            jsonNode.get("translate_target").asText() : null;
-        Boolean isResponseShown = jsonNode.get("is_response_shown") != null ? 
-            jsonNode.get("is_response_shown").asBoolean() : null;
-        String responderName = jsonNode.get("responder_name") != null ? 
-            jsonNode.get("responder_name").asText() : null;
-        String responseText = jsonNode.get("response_text") != null ? 
-            jsonNode.get("response_text").asText() : null;
-        String responseDateText = jsonNode.get("response_date_text") != null ? 
-            jsonNode.get("response_date_text").asText() : null;
-        String responseDateFmt = jsonNode.get("response_date_fmt") != null ? 
-            jsonNode.get("response_date_fmt").asText() : null;
-        String checkInMonthYr = jsonNode.get("check_in_month_yr") != null ? 
-            jsonNode.get("check_in_month_yr").asText() : null;
+        // Extract review data from comment section
+        Double ratingRaw = commentNode.get("rating") != null ? 
+            commentNode.get("rating").asDouble() : null;
+        String ratingText = commentNode.get("ratingText") != null ? 
+            commentNode.get("ratingText").asText() : null;
+        String ratingFormatted = commentNode.get("formattedRating") != null ? 
+            commentNode.get("formattedRating").asText() : null;
+        String reviewTitle = commentNode.get("reviewTitle") != null ? 
+            commentNode.get("reviewTitle").asText() : null;
+        String reviewComment = commentNode.get("reviewComments") != null ? 
+            commentNode.get("reviewComments").asText() : null;
+        String translateSource = commentNode.get("translateSource") != null ? 
+            commentNode.get("translateSource").asText() : null;
+        String translateTarget = commentNode.get("translateTarget") != null ? 
+            commentNode.get("translateTarget").asText() : null;
+        Boolean isResponseShown = commentNode.get("isShowReviewResponse") != null ? 
+            commentNode.get("isShowReviewResponse").asBoolean() : null;
+        String responderName = commentNode.get("responderName") != null ? 
+            commentNode.get("responderName").asText() : null;
+        String responseText = commentNode.get("originalComment") != null ? 
+            commentNode.get("originalComment").asText() : null;
+        String responseDateText = commentNode.get("responseDateText") != null ? 
+            commentNode.get("responseDateText").asText() : null;
+        String responseDateFmt = commentNode.get("formattedResponseDate") != null ? 
+            commentNode.get("formattedResponseDate").asText() : null;
+        String checkInMonthYr = commentNode.get("checkInDateMonthAndYear") != null ? 
+            commentNode.get("checkInDateMonthAndYear").asText() : null;
             
         // Parse review date
         OffsetDateTime reviewDate = null;
-        if (jsonNode.get("review_date") != null) {
+        if (commentNode.get("reviewDate") != null) {
             try {
-                String reviewDateStr = jsonNode.get("review_date").asText();
+                String reviewDateStr = commentNode.get("reviewDate").asText();
                 reviewDate = OffsetDateTime.parse(reviewDateStr, DateTimeFormatter.ISO_OFFSET_DATE_TIME);
             } catch (Exception e) {
                 // Log warning but continue
-                System.out.println("Warning: Could not parse review date: " + jsonNode.get("review_date").asText());
+                System.out.println("Warning: Could not parse review date: " + commentNode.get("reviewDate").asText());
             }
         }
         
@@ -289,8 +432,8 @@ public class RecordProcessorJob {
             .ratingFormatted(ratingFormatted)
             .reviewTitle(reviewTitle)
             .reviewComment(reviewComment)
-            .reviewVotePositive(reviewVotePositive)
-            .reviewVoteNegative(reviewVoteNegative)
+            .reviewVotePositive(null) // Not available in this structure
+            .reviewVoteNegative(null) // Not available in this structure
             .reviewDate(reviewDate)
             .translateSource(translateSource)
             .translateTarget(translateTarget)
@@ -302,6 +445,7 @@ public class RecordProcessorJob {
             .checkInMonthYr(checkInMonthYr)
             .build();
             
+        System.out.println("Creating new review: " + reviewExternalId);
         reviewRepo.save(review);
     }
 }
