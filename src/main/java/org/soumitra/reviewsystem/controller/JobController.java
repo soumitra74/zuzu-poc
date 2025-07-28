@@ -7,11 +7,18 @@ import org.springframework.web.bind.annotation.*;
 import org.soumitra.reviewsystem.JobRunner;
 import org.soumitra.reviewsystem.RecordProcessorJob;
 import org.soumitra.reviewsystem.dao.*;
+import org.soumitra.reviewsystem.model.JobRun;
 import org.soumitra.reviewsystem.util.HotelReviewJsonParser;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @RestController
 @RequestMapping("/api/jobs")
@@ -136,9 +143,9 @@ public class JobController {
 
     /**
      * Get job status endpoint
-     * GET /api/jobs/status
+     * GET /api/jobs/health
      */
-    @GetMapping("/status")
+    @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> getJobStatus() {
         Map<String, Object> response = new HashMap<>();
         response.put("status", "ready");
@@ -146,6 +153,84 @@ public class JobController {
         response.put("message", "Job controller is ready to process requests");
         
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * List all jobs
+     * GET /api/jobs
+     */
+    @GetMapping("")
+    public ResponseEntity<Map<String, Object>> getAllJobs(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String status) {
+        
+        try {
+            List<JobRun> jobs;
+            
+            if (status != null && !status.trim().isEmpty()) {
+                // Filter by status
+                jobs = jobRunRepository.findByStatus(status);
+            } else {
+                // Get all jobs with pagination
+                Pageable pageable = PageRequest.of(page, size, Sort.by("scheduledAt").descending());
+                Page<JobRun> jobPage = jobRunRepository.findAll(pageable);
+                jobs = jobPage.getContent();
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("jobs", jobs);
+            response.put("totalJobs", jobs.size());
+            response.put("page", page);
+            response.put("size", size);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Failed to retrieve jobs: " + e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    /**
+     * Get a specific job by ID
+     * GET /api/jobs/{jobId}
+     */
+    @GetMapping("/{jobId}")
+    public ResponseEntity<Map<String, Object>> getJobById(@PathVariable Integer jobId) {
+        
+        try {
+            Optional<JobRun> jobOptional = jobRunRepository.findById(jobId);
+            
+            if (jobOptional.isPresent()) {
+                JobRun job = jobOptional.get();
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("job", job);
+                
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("error", "Job not found with ID: " + jobId);
+                
+                return ResponseEntity.notFound().build();
+            }
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Failed to retrieve job: " + e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
     }
 
     // Request DTOs
