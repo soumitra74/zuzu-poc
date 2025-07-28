@@ -33,4 +33,8 @@ public class Reviewer {
 
     @Column(name = "reviews_written")
     private Integer reviewsWritten;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "provider_id")
+    private Provider provider;
 } 

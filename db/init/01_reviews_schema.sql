@@ -23,11 +23,13 @@ ALTER TABLE hotel ADD CONSTRAINT hotel_unique_key UNIQUE (external_id, provider_
 CREATE TABLE reviewer (
     reviewer_id  BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     display_name TEXT,                           
+    provider_id  SMALLINT    NOT NULL REFERENCES provider(provider_id),
     country_id   INTEGER,
     country_name VARCHAR(255),
     flag_code    CHAR(2),                        
-    is_expert    BOOLEAN      DEFAULT FALSE,
-    reviews_written INTEGER   DEFAULT 0
+    is_expert    BOOLEAN     DEFAULT FALSE,
+    reviews_written INTEGER  DEFAULT 0,
+    CONSTRAINT reviewer_display_country_provider_unique UNIQUE (display_name, country_id, provider_id)
 );
 
 -- 3. Review-specific tables

@@ -13,6 +13,7 @@ import org.soumitra.reviewsystem.dao.ReviewRepository;
 import org.soumitra.reviewsystem.dao.HotelRepository;
 import org.soumitra.reviewsystem.dao.ProviderRepository;
 import org.soumitra.reviewsystem.dao.ReviewerRepository;
+import org.soumitra.reviewsystem.dao.StayInfoRepository;
 
 // Model classes
 import org.soumitra.reviewsystem.model.Record;
@@ -20,11 +21,8 @@ import org.soumitra.reviewsystem.model.Review;
 import org.soumitra.reviewsystem.model.Hotel;
 import org.soumitra.reviewsystem.model.Provider;
 import org.soumitra.reviewsystem.model.Reviewer;
+import org.soumitra.reviewsystem.model.StayInfo;
 import org.soumitra.reviewsystem.util.HotelReviewJsonParser;
-
-// JSON parsing
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class RecordProcessorJob {
 
@@ -35,6 +33,7 @@ public class RecordProcessorJob {
     private final HotelRepository hotelRepo;
     private final ProviderRepository providerRepo;
     private final ReviewerRepository reviewerRepo;
+    private final StayInfoRepository stayInfoRepo;
 
     private final int pageSize;
     private final HotelReviewJsonParser parser;
@@ -43,7 +42,7 @@ public class RecordProcessorJob {
         RecordRepository recordRepo, RecordErrorRepository recordErrorRepo, 
         ReviewRepository reviewRepo, HotelRepository hotelRepo, 
         ProviderRepository providerRepo, ReviewerRepository reviewerRepo,
-        HotelReviewJsonParser parser, int pageSize) {
+        StayInfoRepository stayInfoRepo, HotelReviewJsonParser parser, int pageSize) {
         this.jobRepo = jobRepo;
         this.recordRepo = recordRepo;
         this.recordErrorRepo = recordErrorRepo;
@@ -51,6 +50,7 @@ public class RecordProcessorJob {
         this.hotelRepo = hotelRepo;
         this.providerRepo = providerRepo;
         this.reviewerRepo = reviewerRepo;
+        this.stayInfoRepo = stayInfoRepo;
         this.parser = parser;
         this.pageSize = pageSize > 0 ? pageSize : 10;
     }
@@ -110,11 +110,13 @@ public class RecordProcessorJob {
         // Extract and upsert hotel (now with provider relationship)
         Hotel hotel = upsertHotelFromDto(hotelReview.getHotel(), provider);
             
-            // Extract and upsert reviewer
-        Reviewer reviewer = upsertReviewerFromDto(hotelReview.getReviewer());
+        // Extract and upsert reviewer
+        Reviewer reviewer = upsertReviewerFromDto(hotelReview.getReviewer(), provider);
             
-            // Extract and upsert review
+        // Extract and upsert review
         upsertReviewFromDto(hotelReview.getReview(), hotel, provider, reviewer);
+
+        upsertStayInfoFromDto(hotelReview.getStayInfo(), hotel, provider, reviewer);
     }
     
     /**
@@ -151,8 +153,8 @@ public class RecordProcessorJob {
     /**
      * Upsert reviewer from DTO
      */
-    private Reviewer upsertReviewerFromDto(org.soumitra.reviewsystem.dto.ReviewerDto reviewerDto) {
-        return reviewerRepo.findByDisplayNameAndCountryName(reviewerDto.getDisplayName(), reviewerDto.getCountryName())
+    private Reviewer upsertReviewerFromDto(org.soumitra.reviewsystem.dto.ReviewerDto reviewerDto, Provider provider) {
+        return reviewerRepo.findByDisplayNameAndCountryNameAndProvider(reviewerDto.getDisplayName(), reviewerDto.getCountryName(), provider)
             .orElseGet(() -> {
                 Reviewer newReviewer = Reviewer.builder()
                     .displayName(reviewerDto.getDisplayName())
@@ -161,6 +163,7 @@ public class RecordProcessorJob {
                     .flagCode(reviewerDto.getFlagCode())
                     .isExpert(reviewerDto.getIsExpert())
                     .reviewsWritten(reviewerDto.getReviewsWritten())
+                    .provider(provider) // Add provider relationship
                     .build();
                 System.out.println("Creating new reviewer: " + newReviewer.getDisplayName());
                 return reviewerRepo.save(newReviewer);
@@ -202,6 +205,43 @@ public class RecordProcessorJob {
         System.out.println("Creating new review: " + reviewDto.getReviewExternalId());
         reviewRepo.save(newReview);
         }
+        
+    /**
+     * Upsert stay info from DTO
+     */
+    private void upsertStayInfoFromDto(org.soumitra.reviewsystem.dto.StayInfoDto stayInfoDto, Hotel hotel, Provider provider, Reviewer reviewer) {
+        if (stayInfoDto == null) {
+            System.out.println("No stay info available, skipping");
+            return;
+        }
+        
+        // Find the review that was just created
+        Review review = reviewRepo.findByReviewExternalId(stayInfoDto.getReviewId())
+            .orElse(null);
+            
+        if (review == null) {
+            System.out.println("Review not found for stay info, skipping: " + stayInfoDto.getReviewId());
+            return;
+        }
+        
+        // Check if stay info already exists for this review
+        if (stayInfoRepo.existsByReviewId(review.getReviewId())) {
+            System.out.println("Stay info already exists for review, skipping: " + review.getReviewId());
+            return;
+        }
+        
+        StayInfo newStayInfo = StayInfo.builder()
+            .reviewId(review.getReviewId())
+            .roomTypeId(stayInfoDto.getRoomTypeId())
+            .roomTypeName(stayInfoDto.getRoomTypeName())
+            .reviewGroupId(stayInfoDto.getReviewGroupId())
+            .reviewGroupName(stayInfoDto.getReviewGroupName())
+            .lengthOfStay(stayInfoDto.getLengthOfStay())
+            .build();
+            
+        System.out.println("Creating new stay info for review: " + review.getReviewId());
+        stayInfoRepo.save(newStayInfo);
+    }
         
     /**
      * Get stack trace as string

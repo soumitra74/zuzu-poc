@@ -44,12 +44,14 @@ public class HotelReviewJsonParser {
         // Parse additional data if available
         List<ProviderHotelSummaryDto> summaries = parseProviderHotelSummaries(rootNode, hotel, provider);
         List<ProviderHotelGradeDto> grades = parseProviderHotelGrades(rootNode, hotel, provider);
+        StayInfoDto stayInfo = parseStayInfo(rootNode);
         
         return HotelReviewParseResult.builder()
                 .provider(provider)
                 .hotel(hotel)
                 .reviewer(reviewer)
                 .review(review)
+                .stayInfo(stayInfo)
                 .providerHotelSummaries(summaries)
                 .providerHotelGrades(grades)
                 .build();
@@ -269,6 +271,42 @@ public class HotelReviewJsonParser {
         return grades;
     }
 
+    /**
+     * Parse stay info from JSON
+     */
+    private StayInfoDto parseStayInfo(JsonNode rootNode) {
+        JsonNode commentNode = rootNode.get("comment");
+        if (commentNode == null) {
+            return null;
+        }
+        JsonNode reviewerInfoNode = commentNode.get("reviewerInfo");
+        if (reviewerInfoNode == null) {
+            return null;
+        }
+
+        Long reviewId = getLongValue(commentNode, "hotelReviewId");
+        Integer roomTypeId = getIntegerValue(reviewerInfoNode, "roomTypeId");
+        String roomTypeName = getStringValue(reviewerInfoNode, "roomTypeName");
+        Integer reviewGroupId = getIntegerValue(reviewerInfoNode, "reviewGroupId");
+        String reviewGroupName = getStringValue(reviewerInfoNode, "reviewGroupName");
+        Short lengthOfStay = getShortValue(reviewerInfoNode, "lengthOfStay");
+        
+        // Only return StayInfo if we have at least some meaningful data
+        if (reviewId == null && roomTypeId == null && roomTypeName == null && 
+            reviewGroupId == null && reviewGroupName == null && lengthOfStay == null) {
+            return null;
+        }
+        
+        return StayInfoDto.builder()
+                .reviewId(reviewId)
+                .roomTypeId(roomTypeId)
+                .roomTypeName(roomTypeName)
+                .reviewGroupId(reviewGroupId)
+                .reviewGroupName(reviewGroupName)
+                .lengthOfStay(lengthOfStay)
+                .build();
+    }
+
     // Helper methods for safe JSON value extraction
     private String getStringValue(JsonNode node, String fieldName) {
         return node.has(fieldName) && !node.get(fieldName).isNull() ? 
@@ -308,6 +346,7 @@ public class HotelReviewJsonParser {
         private final HotelDto hotel;
         private final ReviewerDto reviewer;
         private final ReviewDto review;
+        private final StayInfoDto stayInfo;
         private final List<ProviderHotelSummaryDto> providerHotelSummaries;
         private final List<ProviderHotelGradeDto> providerHotelGrades;
 
@@ -316,6 +355,7 @@ public class HotelReviewJsonParser {
             this.hotel = builder.hotel;
             this.reviewer = builder.reviewer;
             this.review = builder.review;
+            this.stayInfo = builder.stayInfo;
             this.providerHotelSummaries = builder.providerHotelSummaries;
             this.providerHotelGrades = builder.providerHotelGrades;
         }
@@ -328,6 +368,7 @@ public class HotelReviewJsonParser {
         public HotelDto getHotel() { return hotel; }
         public ReviewerDto getReviewer() { return reviewer; }
         public ReviewDto getReview() { return review; }
+        public StayInfoDto getStayInfo() { return stayInfo; }
         public List<ProviderHotelSummaryDto> getProviderHotelSummaries() { return providerHotelSummaries; }
         public List<ProviderHotelGradeDto> getProviderHotelGrades() { return providerHotelGrades; }
 
@@ -336,6 +377,7 @@ public class HotelReviewJsonParser {
             private HotelDto hotel;
             private ReviewerDto reviewer;
             private ReviewDto review;
+            private StayInfoDto stayInfo;
             private List<ProviderHotelSummaryDto> providerHotelSummaries = new ArrayList<>();
             private List<ProviderHotelGradeDto> providerHotelGrades = new ArrayList<>();
 
@@ -356,6 +398,11 @@ public class HotelReviewJsonParser {
 
             public Builder review(ReviewDto review) {
                 this.review = review;
+                return this;
+            }
+
+            public Builder stayInfo(StayInfoDto stayInfo) {
+                this.stayInfo = stayInfo;
                 return this;
             }
 

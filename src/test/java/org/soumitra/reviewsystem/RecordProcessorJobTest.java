@@ -18,6 +18,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doNothing;
 
 @ExtendWith(MockitoExtension.class)
 class RecordProcessorJobTest {
@@ -44,6 +45,9 @@ class RecordProcessorJobTest {
     private ReviewerRepository reviewerRepository;
 
     @Mock
+    private org.soumitra.reviewsystem.dao.StayInfoRepository stayInfoRepository;
+
+    @Mock
     private HotelReviewJsonParser parser;
 
     private RecordProcessorJob recordProcessorJob;
@@ -53,7 +57,7 @@ class RecordProcessorJobTest {
         recordProcessorJob = new RecordProcessorJob(
             jobRunRepository, recordRepository, recordErrorRepository,
             reviewRepository, hotelRepository, providerRepository, reviewerRepository,
-            parser, 10
+            stayInfoRepository, parser, 10
         );
     }
 
@@ -68,8 +72,8 @@ class RecordProcessorJobTest {
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
-        when(recordRepository.updateRecordStatus(anyInt(), anyString())).thenReturn(1);
-        when(recordRepository.updateRecordStatus(anyInt(), anyString(), anyString())).thenReturn(1);
+        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
+        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
         when(jobRunRepository.updateJobStatus(anyInt(), any(LocalDateTime.class), anyString()))
             .thenReturn(1);
 
@@ -82,7 +86,7 @@ class RecordProcessorJobTest {
         when(providerRepository.save(any(Provider.class))).thenReturn(createMockProvider());
         when(hotelRepository.findByExternalIdAndProvider(anyInt(), any(Provider.class))).thenReturn(Optional.empty());
         when(hotelRepository.save(any(Hotel.class))).thenReturn(createMockHotel());
-        when(reviewerRepository.findByDisplayNameAndCountryName(anyString(), anyString())).thenReturn(Optional.empty());
+        when(reviewerRepository.findByDisplayNameAndCountryNameAndProvider(anyString(), anyString(), any(Provider.class))).thenReturn(Optional.empty());
         when(reviewerRepository.save(any(Reviewer.class))).thenReturn(createMockReviewer());
         when(reviewRepository.existsByReviewExternalId(anyLong())).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(createMockReview());
@@ -109,8 +113,8 @@ class RecordProcessorJobTest {
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
-        when(recordRepository.updateRecordStatus(anyInt(), anyString())).thenReturn(1);
-        when(recordRepository.updateRecordStatus(anyInt(), anyString(), anyString())).thenReturn(1);
+        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
+        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
         when(jobRunRepository.updateJobStatus(anyInt(), any(LocalDateTime.class), anyString()))
             .thenReturn(1);
 
@@ -156,8 +160,8 @@ class RecordProcessorJobTest {
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
-        when(recordRepository.updateRecordStatus(anyInt(), anyString())).thenReturn(1);
-        when(recordRepository.updateRecordStatus(anyInt(), anyString(), anyString())).thenReturn(1);
+        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
+        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
         when(jobRunRepository.updateJobStatus(anyInt(), any(LocalDateTime.class), anyString()))
             .thenReturn(1);
 
@@ -171,7 +175,7 @@ class RecordProcessorJobTest {
 
         when(providerRepository.findByExternalId(any())).thenReturn(Optional.of(existingProvider));
         when(hotelRepository.findByExternalIdAndProvider(anyInt(), any(Provider.class))).thenReturn(Optional.of(existingHotel));
-        when(reviewerRepository.findByDisplayNameAndCountryName(anyString(), anyString())).thenReturn(Optional.of(existingReviewer));
+        when(reviewerRepository.findByDisplayNameAndCountryNameAndProvider(anyString(), anyString(), any(Provider.class))).thenReturn(Optional.of(existingReviewer));
         when(reviewRepository.existsByReviewExternalId(anyLong())).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(createMockReview());
 
@@ -179,13 +183,18 @@ class RecordProcessorJobTest {
         recordProcessorJob.runJob();
 
         // Verify
+        verify(jobRunRepository).insertJob(any(LocalDateTime.class), eq("MANUAL"), eq("running"), eq("Processing review records"));
+        verify(recordRepository).findNewRecords(10);
+        verify(recordRepository).updateRecordStatus(1, "processing");
+        verify(recordRepository).updateRecordStatus(1, "success");
         verify(providerRepository).findByExternalId(any());
         verify(providerRepository, never()).save(any(Provider.class));
         verify(hotelRepository).findByExternalIdAndProvider(anyInt(), any(Provider.class));
         verify(hotelRepository, never()).save(any(Hotel.class));
-        verify(reviewerRepository).findByDisplayNameAndCountryName(anyString(), anyString());
+        verify(reviewerRepository).findByDisplayNameAndCountryNameAndProvider(anyString(), anyString(), any(Provider.class));
         verify(reviewerRepository, never()).save(any(Reviewer.class));
         verify(reviewRepository).save(any(Review.class));
+        verify(jobRunRepository).updateJobStatus(eq(1), any(LocalDateTime.class), eq("success"));
     }
 
     @Test
@@ -198,8 +207,8 @@ class RecordProcessorJobTest {
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
-        when(recordRepository.updateRecordStatus(anyInt(), anyString())).thenReturn(1);
-        when(recordRepository.updateRecordStatus(anyInt(), anyString(), anyString())).thenReturn(1);
+        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
+        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
         when(jobRunRepository.updateJobStatus(anyInt(), any(LocalDateTime.class), anyString()))
             .thenReturn(1);
 
@@ -213,7 +222,7 @@ class RecordProcessorJobTest {
 
         when(providerRepository.findByExternalId(any())).thenReturn(Optional.of(existingProvider));
         when(hotelRepository.findByExternalIdAndProvider(anyInt(), any(Provider.class))).thenReturn(Optional.of(existingHotel));
-        when(reviewerRepository.findByDisplayNameAndCountryName(anyString(), anyString())).thenReturn(Optional.of(existingReviewer));
+        when(reviewerRepository.findByDisplayNameAndCountryNameAndProvider(anyString(), anyString(), any(Provider.class))).thenReturn(Optional.of(existingReviewer));
         when(reviewRepository.existsByReviewExternalId(anyLong())).thenReturn(true);
 
         // Execute

@@ -16,7 +16,7 @@ public class StayInfo {
     private Long reviewId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "review_id", referencedColumnName = "review_id")
+    @JoinColumn(name = "review_id", referencedColumnName = "review_id", insertable = false, updatable = false)
     private Review review;
 
     @Column(name = "room_type_id")
