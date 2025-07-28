@@ -72,9 +72,16 @@ public class RecordProcessorJob {
                     recordRepo.updateRecordStatus(record.getId(), "processing");
                     processRecord(record.getRawData());
                     recordRepo.updateRecordStatus(record.getId(), "success");
+                    System.out.println("Successfully processed record ID: " + record.getId());
                 } catch (Exception recEx) {
-                    recordRepo.updateRecordStatus(record.getId(), "failed", recEx.getMessage());
-                    recordErrorRepo.logRecordError(record, recEx.getMessage());
+                    String errorMessage = recEx.getMessage();
+                    String traceback = getStackTrace(recEx);
+                    
+                    System.err.println("Failed to process record ID: " + record.getId());
+                    System.err.println("Error: " + errorMessage);
+                    
+                    recordRepo.updateRecordStatus(record.getId(), "failed", errorMessage);
+                    recordErrorRepo.logRecordError(record, errorMessage, traceback);
                 } finally {
                     totalRecordsProcessed++;
                 }
@@ -94,28 +101,22 @@ public class RecordProcessorJob {
      * Implements upsert logic for reviews, hotels, providers, and reviewers
      */
     private void processRecord(String jsonLine) throws Exception {
-        try {
-            HotelReviewJsonParser.HotelReviewParseResult hotelReview =
-                this.parser.parseHotelReview(jsonLine);
-            
-            System.out.println("Processing record: " + jsonLine);
-            
-            // Extract and upsert provider first (hotels depend on providers)
-            Provider provider = upsertProviderFromDto(hotelReview.getProvider());
-            
-            // Extract and upsert hotel (now with provider relationship)
-            Hotel hotel = upsertHotelFromDto(hotelReview.getHotel(), provider);
-            
-            // Extract and upsert reviewer
-            Reviewer reviewer = upsertReviewerFromDto(hotelReview.getReviewer());
-            
-            // Extract and upsert review
-            upsertReviewFromDto(hotelReview.getReview(), hotel, provider, reviewer);
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException("Failed to parse and store record: " + e.getMessage(), e);
-        }
+        HotelReviewJsonParser.HotelReviewParseResult hotelReview =
+            this.parser.parseHotelReview(jsonLine);
+        
+        System.out.println("Processing record: " + jsonLine);
+        
+        // Extract and upsert provider first (hotels depend on providers)
+        Provider provider = upsertProviderFromDto(hotelReview.getProvider());
+        
+        // Extract and upsert hotel (now with provider relationship)
+        Hotel hotel = upsertHotelFromDto(hotelReview.getHotel(), provider);
+        
+        // Extract and upsert reviewer
+        Reviewer reviewer = upsertReviewerFromDto(hotelReview.getReviewer());
+        
+        // Extract and upsert review
+        upsertReviewFromDto(hotelReview.getReview(), hotel, provider, reviewer);
     }
     
     /**
@@ -202,6 +203,16 @@ public class RecordProcessorJob {
             
         System.out.println("Creating new review: " + reviewDto.getReviewExternalId());
         reviewRepo.save(newReview);
+    }
+    
+    /**
+     * Get stack trace as string
+     */
+    private String getStackTrace(Exception e) {
+        java.io.StringWriter sw = new java.io.StringWriter();
+        java.io.PrintWriter pw = new java.io.PrintWriter(sw);
+        e.printStackTrace(pw);
+        return sw.toString();
     }
     
     /**

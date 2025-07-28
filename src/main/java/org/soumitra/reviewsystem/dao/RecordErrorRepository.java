@@ -43,6 +43,13 @@ public interface RecordErrorRepository extends JpaRepository<RecordError, Intege
      * Log record error with Record object and upsert logic
      */
     default void logRecordError(Record record, String errorMessage) {
+        logRecordError(record, errorMessage, null);
+    }
+    
+    /**
+     * Log record error with Record object, error message, and traceback
+     */
+    default void logRecordError(Record record, String errorMessage, String traceback) {
         // Check if error already exists for this record
         Optional<RecordError> existingError = findByRecordId(record.getId());
         
@@ -50,6 +57,7 @@ public interface RecordErrorRepository extends JpaRepository<RecordError, Intege
             // Update existing error
             RecordError error = existingError.get();
             error.setErrorMessage(errorMessage);
+            error.setTraceback(traceback);
             save(error);
         } else {
             // Create new error
@@ -58,7 +66,7 @@ public interface RecordErrorRepository extends JpaRepository<RecordError, Intege
             recordError.setRecordId(record.getId());
             recordError.setErrorType("PROCESSING_ERROR");
             recordError.setErrorMessage(errorMessage);
-            recordError.setTraceback(null);
+            recordError.setTraceback(traceback);
             
             save(recordError);
         }
