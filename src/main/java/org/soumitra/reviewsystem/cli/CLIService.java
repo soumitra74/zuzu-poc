@@ -62,8 +62,7 @@ public class CLIService {
         
         try {
             JobRunner runner = new JobRunner(jobRunRepository, s3FileRepository, 
-                recordRepository, recordErrorRepository, reviewRepository, hotelRepository,
-                providerRepository, reviewerRepository, s3Client, pageSize);
+                recordRepository, s3Client, pageSize);
             
             String s3Uri = "s3://" + bucket;
             runner.runJob(s3Uri);

@@ -66,8 +66,8 @@ public class JobRunnerIntegrationTest {
         // s3Client.putObject(PutObjectRequest.builder().bucket(BUCKET).key("test.jsonl").build(),
         //         software.amazon.awssdk.core.sync.RequestBody.fromString("{\"foo\":1}\n{\"foo\":2}"));
 
-        JobRunner runner = new JobRunner(jobRepo, fileRepo, recordRepo, recordErrorRepo, 
-            reviewRepo, hotelRepo, providerRepo, reviewerRepo, s3Client, 10);
+        JobRunner runner = new JobRunner(jobRepo, fileRepo, recordRepo, 
+            s3Client, 10);
         // This will call S3FileLister.listAllFilesInBucket internally
         System.out.println("********************** Running job for bucket: " + BUCKET);
         runner.runJob("s3://" + BUCKET);
