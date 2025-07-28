@@ -128,7 +128,7 @@ public class RecordProcessorJob {
                     .externalId(providerDto.getExternalId())
                     .providerName(providerDto.getProviderName())
                     .build();
-                System.out.println("Creating new provider: " + newProvider);
+                System.out.println("Creating new provider: " + newProvider.getProviderName());
                 return providerRepo.save(newProvider);
             });
     }
@@ -163,7 +163,7 @@ public class RecordProcessorJob {
                     .isExpert(reviewerDto.getIsExpert())
                     .reviewsWritten(reviewerDto.getReviewsWritten())
                     .build();
-                System.out.println("Creating new reviewer: " + newReviewer);
+                System.out.println("Creating new reviewer: " + newReviewer.getDisplayName());
                 return reviewerRepo.save(newReviewer);
             });
     }

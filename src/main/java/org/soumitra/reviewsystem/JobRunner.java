@@ -52,7 +52,7 @@ public class JobRunner {
         RecordRepository recordRepo, RecordErrorRepository recordErrorRepo, 
         ReviewRepository reviewRepo, HotelRepository hotelRepo, 
         ProviderRepository providerRepo, ReviewerRepository reviewerRepo,
-        S3Client s3Client, int pageSize) {
+        S3Client s3Client, int batchSize) {
         this.jobRepo = jobRepo;
         this.fileRepo = fileRepo;
         this.recordRepo = recordRepo;
@@ -62,7 +62,7 @@ public class JobRunner {
         this.providerRepo = providerRepo;
         this.reviewerRepo = reviewerRepo;
         this.s3Client = s3Client;
-        this.pageSize = pageSize > 0 ? pageSize : 10;
+        this.pageSize = batchSize > 0 ? batchSize : 10;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -94,8 +94,7 @@ public class JobRunner {
                         int lineNumber = line + i; // 0-based line indexing
 
                         try {
-                            logRecord(fileId, jobId, lineNumber, jsonLine); // <-- your method to handle the review upsert
-                            //recordRepo.logRecord(fileId, lineNumber, "SUCCESS", null);
+                            logRecord(fileId, jobId, lineNumber, jsonLine);
                             fileRecordCount++;
                         } catch (Exception recEx) {
                             fileSuccess = false;
