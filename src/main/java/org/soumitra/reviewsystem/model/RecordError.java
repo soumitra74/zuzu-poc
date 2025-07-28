@@ -16,7 +16,7 @@ public class RecordError {
     private Integer recordId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "record_id", referencedColumnName = "id")
+    @JoinColumn(name = "record_id", referencedColumnName = "id", insertable = false, updatable = false)
     private Record record;
 
     @Column(name = "error_type")

@@ -60,9 +60,8 @@ public interface RecordErrorRepository extends JpaRepository<RecordError, Intege
             error.setTraceback(traceback);
             save(error);
         } else {
-            // Create new error
+            // Create new error - only set the primary key, not the foreign key object
             RecordError recordError = new RecordError();
-            recordError.setRecord(record);
             recordError.setRecordId(record.getId());
             recordError.setErrorType("PROCESSING_ERROR");
             recordError.setErrorMessage(errorMessage);
