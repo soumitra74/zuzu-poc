@@ -8,6 +8,9 @@ import org.soumitra.reviewsystem.JobRunner;
 import org.soumitra.reviewsystem.RecordProcessorJob;
 import org.soumitra.reviewsystem.dao.*;
 import org.soumitra.reviewsystem.model.JobRun;
+import org.soumitra.reviewsystem.model.S3File;
+import org.soumitra.reviewsystem.model.Record;
+import org.soumitra.reviewsystem.model.RecordError;
 import org.soumitra.reviewsystem.util.HotelReviewJsonParser;
 import software.amazon.awssdk.services.s3.S3Client;
 
@@ -227,6 +230,263 @@ public class JobController {
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("success", false);
             errorResponse.put("error", "Failed to retrieve job: " + e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    // ==================== S3 FILES ENDPOINTS ====================
+
+    /**
+     * List all S3 files
+     * GET /api/jobs/s3-files
+     */
+    @GetMapping("/s3-files")
+    public ResponseEntity<Map<String, Object>> getAllS3Files(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer jobRunId) {
+        
+        try {
+            List<S3File> files;
+            
+            if (jobRunId != null) {
+                // Filter by job run ID
+                files = s3FileRepository.findByJobRunId(jobRunId);
+            } else if (status != null && !status.trim().isEmpty()) {
+                // Filter by status
+                files = s3FileRepository.findByStatus(status);
+            } else {
+                // Get all files with pagination
+                Pageable pageable = PageRequest.of(page, size, Sort.by("startedAt").descending());
+                Page<S3File> filePage = s3FileRepository.findAll(pageable);
+                files = filePage.getContent();
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("files", files);
+            response.put("totalFiles", files.size());
+            response.put("page", page);
+            response.put("size", size);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Failed to retrieve S3 files: " + e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    /**
+     * Get a specific S3 file by ID
+     * GET /api/jobs/s3-files/{fileId}
+     */
+    @GetMapping("/s3-files/{fileId}")
+    public ResponseEntity<Map<String, Object>> getS3FileById(@PathVariable Integer fileId) {
+        
+        try {
+            Optional<S3File> fileOptional = s3FileRepository.findById(fileId);
+            
+            if (fileOptional.isPresent()) {
+                S3File file = fileOptional.get();
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("file", file);
+                
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("error", "S3 file not found with ID: " + fileId);
+                
+                return ResponseEntity.notFound().build();
+            }
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Failed to retrieve S3 file: " + e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    // ==================== RECORDS ENDPOINTS ====================
+
+    /**
+     * List all records
+     * GET /api/jobs/records
+     */
+    @GetMapping("/records")
+    public ResponseEntity<Map<String, Object>> getAllRecords(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Integer jobRunId,
+            @RequestParam(required = false) Integer s3FileId) {
+        
+        try {
+            List<Record> records;
+            
+            if (jobRunId != null) {
+                // Filter by job run ID
+                records = recordRepository.findByJobRunId(jobRunId);
+            } else if (s3FileId != null) {
+                // Filter by S3 file ID
+                records = recordRepository.findByS3FileId(s3FileId);
+            } else if (status != null && !status.trim().isEmpty()) {
+                // Filter by status
+                records = recordRepository.findByStatus(status);
+            } else {
+                // Get all records with pagination
+                Pageable pageable = PageRequest.of(page, size, Sort.by("processedAt").descending());
+                Page<Record> recordPage = recordRepository.findAll(pageable);
+                records = recordPage.getContent();
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("records", records);
+            response.put("totalRecords", records.size());
+            response.put("page", page);
+            response.put("size", size);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Failed to retrieve records: " + e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    /**
+     * Get a specific record by ID
+     * GET /api/jobs/records/{recordId}
+     */
+    @GetMapping("/records/{recordId}")
+    public ResponseEntity<Map<String, Object>> getRecordById(@PathVariable Integer recordId) {
+        
+        try {
+            Optional<Record> recordOptional = recordRepository.findById(recordId);
+            
+            if (recordOptional.isPresent()) {
+                Record record = recordOptional.get();
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("record", record);
+                
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("error", "Record not found with ID: " + recordId);
+                
+                return ResponseEntity.notFound().build();
+            }
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Failed to retrieve record: " + e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    // ==================== RECORD ERRORS ENDPOINTS ====================
+
+    /**
+     * List all record errors
+     * GET /api/jobs/record-errors
+     */
+    @GetMapping("/record-errors")
+    public ResponseEntity<Map<String, Object>> getAllRecordErrors(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String errorType,
+            @RequestParam(required = false) Integer recordId) {
+        
+        try {
+            List<RecordError> errors;
+            
+            if (recordId != null) {
+                // Filter by record ID
+                Optional<RecordError> errorOptional = recordErrorRepository.findByRecordId(recordId);
+                errors = errorOptional.map(List::of).orElse(List.of());
+            } else if (errorType != null && !errorType.trim().isEmpty()) {
+                // Filter by error type
+                errors = recordErrorRepository.findByErrorType(errorType);
+            } else {
+                // Get all errors with pagination
+                Pageable pageable = PageRequest.of(page, size);
+                Page<RecordError> errorPage = recordErrorRepository.findAll(pageable);
+                errors = errorPage.getContent();
+            }
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("errors", errors);
+            response.put("totalErrors", errors.size());
+            response.put("page", page);
+            response.put("size", size);
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Failed to retrieve record errors: " + e.getMessage());
+            errorResponse.put("exception", e.getClass().getSimpleName());
+            
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
+    }
+
+    /**
+     * Get a specific record error by record ID
+     * GET /api/jobs/record-errors/{recordId}
+     */
+    @GetMapping("/record-errors/{recordId}")
+    public ResponseEntity<Map<String, Object>> getRecordErrorByRecordId(@PathVariable Integer recordId) {
+        
+        try {
+            Optional<RecordError> errorOptional = recordErrorRepository.findByRecordId(recordId);
+            
+            if (errorOptional.isPresent()) {
+                RecordError error = errorOptional.get();
+                
+                Map<String, Object> response = new HashMap<>();
+                response.put("success", true);
+                response.put("error", error);
+                
+                return ResponseEntity.ok(response);
+            } else {
+                Map<String, Object> errorResponse = new HashMap<>();
+                errorResponse.put("success", false);
+                errorResponse.put("error", "Record error not found for record ID: " + recordId);
+                
+                return ResponseEntity.notFound().build();
+            }
+            
+        } catch (Exception e) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("success", false);
+            errorResponse.put("error", "Failed to retrieve record error: " + e.getMessage());
             errorResponse.put("exception", e.getClass().getSimpleName());
             
             return ResponseEntity.internalServerError().body(errorResponse);
