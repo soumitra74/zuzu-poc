@@ -11,9 +11,11 @@ import org.soumitra.reviewsystem.model.JobRun;
 import org.soumitra.reviewsystem.model.S3File;
 import org.soumitra.reviewsystem.model.Record;
 import org.soumitra.reviewsystem.model.RecordError;
+import org.soumitra.reviewsystem.model.ApiKey;
 import org.soumitra.reviewsystem.util.HotelReviewJsonParser;
 import software.amazon.awssdk.services.s3.S3Client;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
@@ -78,8 +80,12 @@ public class JobController {
      * POST /api/jobs/run-s3-ingest
      */
     @PostMapping("/run-s3-ingest")
-    public ResponseEntity<Map<String, Object>> runJobRunner(@RequestBody JobRunnerRequest request) {
+    public ResponseEntity<Map<String, Object>> runJobRunner(@RequestBody JobRunnerRequest request, HttpServletRequest httpRequest) {
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             // s3Uri is optional. if missing take from application config
             String s3Uri = request.getS3Uri();
             if (s3Uri == null || s3Uri.trim().isEmpty()) {
@@ -103,6 +109,8 @@ public class JobController {
             response.put("message", "JobRunner job completed successfully");
             response.put("s3Uri", s3Uri);
             response.put("batchSize", request.getBatchSize() != null ? request.getBatchSize() : 10);
+            response.put("executedBy", apiKey.getName());
+            response.put("executedByRole", role);
 
             return ResponseEntity.ok(response);
 
@@ -121,8 +129,12 @@ public class JobController {
      * POST /api/jobs/run-record-processor
      */
     @PostMapping("/run-record-processor")
-    public ResponseEntity<Map<String, Object>> runRecordProcessor(@RequestBody RecordProcessorRequest request) {
+    public ResponseEntity<Map<String, Object>> runRecordProcessor(@RequestBody RecordProcessorRequest request, HttpServletRequest httpRequest) {
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             // Create RecordProcessorJob instance
             RecordProcessorJob recordProcessorJob = new RecordProcessorJob(
                 jobRunRepository,
@@ -147,6 +159,8 @@ public class JobController {
             response.put("success", true);
             response.put("message", "RecordProcessorJob completed successfully");
             response.put("pageSize", request.getPageSize() != null ? request.getPageSize() : 10);
+            response.put("executedBy", apiKey.getName());
+            response.put("executedByRole", role);
 
             return ResponseEntity.ok(response);
 
@@ -170,6 +184,7 @@ public class JobController {
         response.put("status", "ready");
         response.put("availableJobs", new String[]{"job-runner", "record-processor"});
         response.put("message", "Job controller is ready to process requests");
+        response.put("authentication", "API key required for all endpoints except health check");
         
         return ResponseEntity.ok(response);
     }
@@ -182,9 +197,14 @@ public class JobController {
     public ResponseEntity<Map<String, Object>> getAllJobs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            HttpServletRequest httpRequest) {
         
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             List<JobRun> jobs;
             
             if (status != null && !status.trim().isEmpty()) {
@@ -203,6 +223,8 @@ public class JobController {
             response.put("totalJobs", jobs.size());
             response.put("page", page);
             response.put("size", size);
+            response.put("requestedBy", apiKey.getName());
+            response.put("requestedByRole", role);
             
             return ResponseEntity.ok(response);
             
@@ -221,9 +243,13 @@ public class JobController {
      * GET /api/jobs/{jobId}
      */
     @GetMapping("/{jobId}")
-    public ResponseEntity<Map<String, Object>> getJobById(@PathVariable Integer jobId) {
+    public ResponseEntity<Map<String, Object>> getJobById(@PathVariable Integer jobId, HttpServletRequest httpRequest) {
         
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             Optional<JobRun> jobOptional = jobRunRepository.findById(jobId);
             
             if (jobOptional.isPresent()) {
@@ -232,6 +258,8 @@ public class JobController {
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
                 response.put("job", job);
+                response.put("requestedBy", apiKey.getName());
+                response.put("requestedByRole", role);
                 
                 return ResponseEntity.ok(response);
             } else {
@@ -263,9 +291,14 @@ public class JobController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String status,
-            @RequestParam(required = false) Integer jobRunId) {
+            @RequestParam(required = false) Integer jobRunId,
+            HttpServletRequest httpRequest) {
         
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             List<S3File> files;
             
             if (jobRunId != null) {
@@ -287,6 +320,8 @@ public class JobController {
             response.put("totalFiles", files.size());
             response.put("page", page);
             response.put("size", size);
+            response.put("requestedBy", apiKey.getName());
+            response.put("requestedByRole", role);
             
             return ResponseEntity.ok(response);
             
@@ -305,9 +340,13 @@ public class JobController {
      * GET /api/jobs/s3-files/{fileId}
      */
     @GetMapping("/s3-files/{fileId}")
-    public ResponseEntity<Map<String, Object>> getS3FileById(@PathVariable Integer fileId) {
+    public ResponseEntity<Map<String, Object>> getS3FileById(@PathVariable Integer fileId, HttpServletRequest httpRequest) {
         
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             Optional<S3File> fileOptional = s3FileRepository.findById(fileId);
             
             if (fileOptional.isPresent()) {
@@ -316,6 +355,8 @@ public class JobController {
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
                 response.put("file", file);
+                response.put("requestedBy", apiKey.getName());
+                response.put("requestedByRole", role);
                 
                 return ResponseEntity.ok(response);
             } else {
@@ -348,9 +389,14 @@ public class JobController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) Integer jobRunId,
-            @RequestParam(required = false) Integer s3FileId) {
+            @RequestParam(required = false) Integer s3FileId,
+            HttpServletRequest httpRequest) {
         
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             List<Record> records;
             
             if (jobRunId != null) {
@@ -375,6 +421,8 @@ public class JobController {
             response.put("totalRecords", records.size());
             response.put("page", page);
             response.put("size", size);
+            response.put("requestedBy", apiKey.getName());
+            response.put("requestedByRole", role);
             
             return ResponseEntity.ok(response);
             
@@ -393,9 +441,13 @@ public class JobController {
      * GET /api/jobs/records/{recordId}
      */
     @GetMapping("/records/{recordId}")
-    public ResponseEntity<Map<String, Object>> getRecordById(@PathVariable Integer recordId) {
+    public ResponseEntity<Map<String, Object>> getRecordById(@PathVariable Integer recordId, HttpServletRequest httpRequest) {
         
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             Optional<Record> recordOptional = recordRepository.findById(recordId);
             
             if (recordOptional.isPresent()) {
@@ -404,6 +456,8 @@ public class JobController {
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
                 response.put("record", record);
+                response.put("requestedBy", apiKey.getName());
+                response.put("requestedByRole", role);
                 
                 return ResponseEntity.ok(response);
             } else {
@@ -435,9 +489,14 @@ public class JobController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String errorType,
-            @RequestParam(required = false) Integer recordId) {
+            @RequestParam(required = false) Integer recordId,
+            HttpServletRequest httpRequest) {
         
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             List<RecordError> errors;
             
             if (recordId != null) {
@@ -460,6 +519,8 @@ public class JobController {
             response.put("totalErrors", errors.size());
             response.put("page", page);
             response.put("size", size);
+            response.put("requestedBy", apiKey.getName());
+            response.put("requestedByRole", role);
             
             return ResponseEntity.ok(response);
             
@@ -478,9 +539,13 @@ public class JobController {
      * GET /api/jobs/record-errors/{recordId}
      */
     @GetMapping("/record-errors/{recordId}")
-    public ResponseEntity<Map<String, Object>> getRecordErrorByRecordId(@PathVariable Integer recordId) {
+    public ResponseEntity<Map<String, Object>> getRecordErrorByRecordId(@PathVariable Integer recordId, HttpServletRequest httpRequest) {
         
         try {
+            // Get authenticated API key info
+            ApiKey apiKey = (ApiKey) httpRequest.getAttribute("apiKey");
+            String role = (String) httpRequest.getAttribute("apiKeyRole");
+            
             Optional<RecordError> errorOptional = recordErrorRepository.findByRecordId(recordId);
             
             if (errorOptional.isPresent()) {
@@ -489,6 +554,8 @@ public class JobController {
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
                 response.put("error", error);
+                response.put("requestedBy", apiKey.getName());
+                response.put("requestedByRole", role);
                 
                 return ResponseEntity.ok(response);
             } else {
