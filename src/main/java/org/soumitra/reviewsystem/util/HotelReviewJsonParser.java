@@ -163,7 +163,7 @@ public class HotelReviewJsonParser {
             throw new RuntimeException("Review ID is missing");
         }
         
-        Double ratingRaw = getDoubleValue(commentNode, "rating");
+        Double rating = getDoubleValue(commentNode, "rating");
         String ratingText = getStringValue(commentNode, "ratingText");
         String ratingFormatted = getStringValue(commentNode, "formattedRating");
         String reviewTitle = getStringValue(commentNode, "reviewTitle");
@@ -193,7 +193,7 @@ public class HotelReviewJsonParser {
                 .hotel(hotel)
                 .provider(provider)
                 .reviewer(reviewer)
-                .ratingRaw(ratingRaw)
+                .rating(rating)
                 .ratingText(ratingText)
                 .ratingFormatted(ratingFormatted)
                 .reviewTitle(reviewTitle)

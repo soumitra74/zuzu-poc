@@ -72,8 +72,8 @@ class RecordProcessorJobTest {
     @Test
     void testRunJobWithValidRecords() throws Exception {
         // Use real JSON data instead of mocking parser
-        String validJson1 = "{\"comment\":{\"hotelReviewId\":947130812,\"reviewerInfo\":{\"roomTypeId\":1,\"roomTypeName\":\"Standard Room\",\"reviewGroupId\":1,\"reviewGroupName\":\"Business\",\"lengthOfStay\":2}},\"hotel\":{\"hotelId\":16402071,\"hotelName\":\"Test Hotel 1\"},\"provider\":{\"externalId\":332,\"providerName\":\"Agoda\"},\"reviewer\":{\"displayName\":\"Test Reviewer 1\",\"countryName\":\"Test Country\"},\"review\":{\"reviewExternalId\":947130812,\"ratingRaw\":8.8}}";
-        String validJson2 = "{\"comment\":{\"hotelReviewId\":947130813,\"reviewerInfo\":{\"roomTypeId\":2,\"roomTypeName\":\"Deluxe Room\",\"reviewGroupId\":2,\"reviewGroupName\":\"Leisure\",\"lengthOfStay\":3}},\"hotel\":{\"hotelId\":16402072,\"hotelName\":\"Test Hotel 2\"},\"provider\":{\"externalId\":332,\"providerName\":\"Agoda\"},\"reviewer\":{\"displayName\":\"Test Reviewer 2\",\"countryName\":\"Test Country\"},\"review\":{\"reviewExternalId\":947130813,\"ratingRaw\":9.0}}";
+        String validJson1 = "{\"comment\":{\"hotelReviewId\":947130812,\"reviewerInfo\":{\"roomTypeId\":1,\"roomTypeName\":\"Standard Room\",\"reviewGroupId\":1,\"reviewGroupName\":\"Business\",\"lengthOfStay\":2}},\"hotel\":{\"hotelId\":16402071,\"hotelName\":\"Test Hotel 1\"},\"provider\":{\"externalId\":332,\"providerName\":\"Agoda\"},\"reviewer\":{\"displayName\":\"Test Reviewer 1\",\"countryName\":\"Test Country\"},\"review\":{\"reviewExternalId\":947130812,\"rating\":8.8}}";
+        String validJson2 = "{\"comment\":{\"hotelReviewId\":947130813,\"reviewerInfo\":{\"roomTypeId\":2,\"roomTypeName\":\"Deluxe Room\",\"reviewGroupId\":2,\"reviewGroupName\":\"Leisure\",\"lengthOfStay\":3}},\"hotel\":{\"hotelId\":16402072,\"hotelName\":\"Test Hotel 2\"},\"provider\":{\"externalId\":332,\"providerName\":\"Agoda\"},\"reviewer\":{\"displayName\":\"Test Reviewer 2\",\"countryName\":\"Test Country\"},\"review\":{\"reviewExternalId\":947130813,\"rating\":9.0}}";
         
         // Setup test data
         Record record1 = createTestRecord(1, validJson1);
@@ -84,11 +84,9 @@ class RecordProcessorJobTest {
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
-        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
-        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
+        doNothing().when(recordRepository).updateRecordStatusAndStartedAt(anyInt(), anyString());
+        doNothing().when(recordRepository).updateRecordStatusWithErrorAndFinishedAt(anyInt(), anyString());
         doNothing().when(jobRunRepository).updateJobStatus(anyInt(), any(LocalDateTime.class), anyString());
-
-
 
         // Execute
         recordProcessorJob.runJob();
@@ -96,8 +94,8 @@ class RecordProcessorJobTest {
         // Verify - records are processed but fail due to JSON parsing issues
         verify(jobRunRepository).insertJob(any(LocalDateTime.class), eq("MANUAL"), eq("running"), eq("Processing review records"));
         verify(recordRepository, times(2)).findNewRecords(10);
-        verify(recordRepository, times(2)).updateRecordStatus(anyInt(), eq("processing"));
-        verify(recordRepository, times(2)).updateRecordStatus(anyInt(), eq("failed"), anyString());
+        verify(recordRepository, times(2)).updateRecordStatusAndStartedAt(anyInt(), eq("processing"));
+        verify(recordRepository, times(2)).updateRecordStatusWithErrorAndFinishedAt(anyInt(), eq("failed"));
         verify(jobRunRepository).updateJobStatus(eq(1), any(LocalDateTime.class), eq("success"));
     }
 
@@ -112,16 +110,16 @@ class RecordProcessorJobTest {
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
-        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
-        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
+        doNothing().when(recordRepository).updateRecordStatusAndStartedAt(anyInt(), anyString());
+        doNothing().when(recordRepository).updateRecordStatusWithErrorAndFinishedAt(anyInt(), anyString());
         doNothing().when(jobRunRepository).updateJobStatus(anyInt(), any(LocalDateTime.class), anyString());
 
         // Execute
         recordProcessorJob.runJob();
 
         // Verify - record fails due to JSON parsing error
-        verify(recordRepository).updateRecordStatus(eq(1), eq("processing"));
-        verify(recordRepository).updateRecordStatus(eq(1), eq("failed"), anyString());
+        verify(recordRepository).updateRecordStatusAndStartedAt(eq(1), eq("processing"));
+        verify(recordRepository).updateRecordStatusWithErrorAndFinishedAt(eq(1), eq("failed"));
         verify(recordErrorRepository).logRecordError(eq(record), anyString(), anyString());
         verify(jobRunRepository).updateJobStatus(eq(1), any(LocalDateTime.class), eq("success"));
     }
@@ -146,7 +144,7 @@ class RecordProcessorJobTest {
     @Test
     void testRunJobWithExistingEntities() throws Exception {
         // Setup test data with valid JSON
-        String validJson = "{\"comment\":{\"hotelReviewId\":947130812,\"reviewerInfo\":{\"roomTypeId\":1,\"roomTypeName\":\"Standard Room\",\"reviewGroupId\":1,\"reviewGroupName\":\"Business\",\"lengthOfStay\":2}},\"hotel\":{\"hotelId\":16402071,\"hotelName\":\"Test Hotel 1\"},\"provider\":{\"externalId\":332,\"providerName\":\"Agoda\"},\"reviewer\":{\"displayName\":\"Test Reviewer 1\",\"countryName\":\"Test Country\"},\"review\":{\"reviewExternalId\":947130812,\"ratingRaw\":8.8}}";
+        String validJson = "{\"comment\":{\"hotelReviewId\":947130812,\"reviewerInfo\":{\"roomTypeId\":1,\"roomTypeName\":\"Standard Room\",\"reviewGroupId\":1,\"reviewGroupName\":\"Business\",\"lengthOfStay\":2}},\"hotel\":{\"hotelId\":16402071,\"hotelName\":\"Test Hotel 1\"},\"provider\":{\"externalId\":332,\"providerName\":\"Agoda\"},\"reviewer\":{\"displayName\":\"Test Reviewer 1\",\"countryName\":\"Test Country\"},\"review\":{\"reviewExternalId\":947130812,\"rating\":8.8}}";
         Record record = createTestRecord(1, validJson);
         List<Record> records = Arrays.asList(record);
 
@@ -154,11 +152,9 @@ class RecordProcessorJobTest {
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
-        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
-        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
+        doNothing().when(recordRepository).updateRecordStatusAndStartedAt(anyInt(), anyString());
+        doNothing().when(recordRepository).updateRecordStatusWithErrorAndFinishedAt(anyInt(), anyString());
         doNothing().when(jobRunRepository).updateJobStatus(anyInt(), any(LocalDateTime.class), anyString());
-
-
 
         // Execute
         recordProcessorJob.runJob();
@@ -166,15 +162,15 @@ class RecordProcessorJobTest {
         // Verify - record fails due to JSON parsing issues
         verify(jobRunRepository).insertJob(any(LocalDateTime.class), eq("MANUAL"), eq("running"), eq("Processing review records"));
         verify(recordRepository, times(2)).findNewRecords(10);
-        verify(recordRepository).updateRecordStatus(eq(1), eq("processing"));
-        verify(recordRepository).updateRecordStatus(eq(1), eq("failed"), anyString());
+        verify(recordRepository).updateRecordStatusAndStartedAt(eq(1), eq("processing"));
+        verify(recordRepository).updateRecordStatusWithErrorAndFinishedAt(eq(1), eq("failed"));
         verify(jobRunRepository).updateJobStatus(eq(1), any(LocalDateTime.class), eq("success"));
     }
 
     @Test
     void testRunJobWithExistingReview() throws Exception {
         // Setup test data with valid JSON
-        String validJson = "{\"comment\":{\"hotelReviewId\":947130812,\"reviewerInfo\":{\"roomTypeId\":1,\"roomTypeName\":\"Standard Room\",\"reviewGroupId\":1,\"reviewGroupName\":\"Business\",\"lengthOfStay\":2}},\"hotel\":{\"hotelId\":16402071,\"hotelName\":\"Test Hotel 1\"},\"provider\":{\"externalId\":332,\"providerName\":\"Agoda\"},\"reviewer\":{\"displayName\":\"Test Reviewer 1\",\"countryName\":\"Test Country\"},\"review\":{\"reviewExternalId\":947130812,\"ratingRaw\":8.8}}";
+        String validJson = "{\"comment\":{\"hotelReviewId\":947130812,\"reviewerInfo\":{\"roomTypeId\":1,\"roomTypeName\":\"Standard Room\",\"reviewGroupId\":1,\"reviewGroupName\":\"Business\",\"lengthOfStay\":2}},\"hotel\":{\"hotelId\":16402071,\"hotelName\":\"Test Hotel 1\"},\"provider\":{\"externalId\":332,\"providerName\":\"Agoda\"},\"reviewer\":{\"displayName\":\"Test Reviewer 1\",\"countryName\":\"Test Country\"},\"review\":{\"reviewExternalId\":947130812,\"rating\":8.8}}";
         Record record = createTestRecord(1, validJson);
         List<Record> records = Arrays.asList(record);
 
@@ -182,18 +178,16 @@ class RecordProcessorJobTest {
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
         when(recordRepository.findNewRecords(10)).thenReturn(records).thenReturn(List.of());
-        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString());
-        doNothing().when(recordRepository).updateRecordStatus(anyInt(), anyString(), anyString());
+        doNothing().when(recordRepository).updateRecordStatusAndStartedAt(anyInt(), anyString());
+        doNothing().when(recordRepository).updateRecordStatusWithErrorAndFinishedAt(anyInt(), anyString());
         doNothing().when(jobRunRepository).updateJobStatus(anyInt(), any(LocalDateTime.class), anyString());
-
-
 
         // Execute
         recordProcessorJob.runJob();
 
         // Verify - record fails due to JSON parsing issues
-        verify(recordRepository).updateRecordStatus(eq(1), eq("processing"));
-        verify(recordRepository).updateRecordStatus(eq(1), eq("failed"), anyString());
+        verify(recordRepository).updateRecordStatusAndStartedAt(eq(1), eq("processing"));
+        verify(recordRepository).updateRecordStatusWithErrorAndFinishedAt(eq(1), eq("failed"));
     }
 
     // Helper methods
@@ -204,8 +198,6 @@ class RecordProcessorJobTest {
         record.setStatus("new");
         return record;
     }
-
-
 
     private Provider createMockProvider() {
         return Provider.builder()
@@ -239,7 +231,7 @@ class RecordProcessorJobTest {
             .hotel(createMockHotel())
             .provider(createMockProvider())
             .reviewer(createMockReviewer())
-            .ratingRaw(8.8)
+            .rating(8.8)
             .build();
     }
 } 

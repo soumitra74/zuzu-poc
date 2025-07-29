@@ -1,19 +1,23 @@
 package org.soumitra.reviewsystem.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDateTime;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class RecordDto {
     private Integer id;
-    private S3FileDto s3File;
-    private JobRunDto jobRun;
-    private Object rawData;
+    private Integer s3FileId;
+    private Integer jobRunId;
+    private String rawData;
     private String status;
-    private LocalDateTime processedAt;
+    private LocalDateTime downloadedAt;
     private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
     private Boolean errorFlag;

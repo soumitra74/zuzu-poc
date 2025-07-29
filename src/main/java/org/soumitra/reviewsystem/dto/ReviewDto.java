@@ -13,7 +13,7 @@ public class ReviewDto {
     private HotelDto hotel;
     private ProviderDto provider;
     private ReviewerDto reviewer;
-    private Double ratingRaw;
+    private Double rating;
     private String ratingText;
     private String ratingFormatted;
     private String reviewTitle;

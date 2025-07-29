@@ -81,9 +81,11 @@ public class RecordProcessorJob {
         while(records.size() > 0) {
             for (Record record : records) {
                 try {
-                    recordRepo.updateRecordStatus(record.getId(), "processing");
+                    // Update status to processing and set startedAt
+                    recordRepo.updateRecordStatusAndStartedAt(record.getId(), "processing");
                     processRecord(record.getRawData());
-                    recordRepo.updateRecordStatus(record.getId(), "success");
+                    // Update status to success and set finishedAt
+                    recordRepo.updateRecordStatusAndFinishedAt(record.getId(), "success");
                     System.out.println("Successfully processed record ID: " + record.getId());
                 } catch (Exception recEx) {
                     String errorMessage = recEx.getMessage();
@@ -92,7 +94,8 @@ public class RecordProcessorJob {
                     System.err.println("Failed to process record ID: " + record.getId());
                     System.err.println("Error: " + errorMessage);
                     
-                    recordRepo.updateRecordStatus(record.getId(), "failed", errorMessage);
+                    // Update status to failed and set finishedAt with error flag
+                    recordRepo.updateRecordStatusWithErrorAndFinishedAt(record.getId(), "failed");
                     recordErrorRepo.logRecordError(record, errorMessage, traceback);
                 } finally {
                     totalRecordsProcessed++;
@@ -202,7 +205,7 @@ public class RecordProcessorJob {
             .hotel(hotel)
             .provider(provider)
             .reviewer(reviewer)
-            .ratingRaw(reviewDto.getRatingRaw())
+            .rating(reviewDto.getRating())
             .ratingText(reviewDto.getRatingText())
             .ratingFormatted(reviewDto.getRatingFormatted())
             .reviewTitle(reviewDto.getReviewTitle())

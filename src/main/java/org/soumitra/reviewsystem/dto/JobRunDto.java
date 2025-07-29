@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 public class JobRunDto {
     private Integer id;
     private LocalDateTime scheduledAt;
-    private LocalDateTime startedAt;
     private LocalDateTime finishedAt;
     private String status;
     private String triggerType;

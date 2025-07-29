@@ -30,8 +30,8 @@ public class Record {
     @Column(name = "status")
     private String status;
 
-    @Column(name = "processed_at")
-    private LocalDateTime processedAt;
+    @Column(name = "downloaded_at")
+    private LocalDateTime downloadedAt;
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;

@@ -20,12 +20,13 @@ public interface RecordRepository extends JpaRepository<Record, Integer> {
      */
     @Modifying
     @Transactional
-    @Query("INSERT INTO Record (s3File.id, jobRun.id, rawData, status, startedAt, finishedAt, errorFlag) " +
-           "VALUES (:s3FileId, :jobRunId, :rawData, :status, :startedAt, :finishedAt, :errorFlag)")
+    @Query("INSERT INTO Record (s3File.id, jobRun.id, rawData, status, downloadedAt, startedAt, finishedAt, errorFlag) " +
+           "VALUES (:s3FileId, :jobRunId, :rawData, :status, :downloadedAt, :startedAt, :finishedAt, :errorFlag)")
     void logRecord(@Param("s3FileId") Integer s3FileId, 
                    @Param("jobRunId") Integer jobRunId,
                    @Param("rawData") String rawData,
                    @Param("status") String status,
+                   @Param("downloadedAt") LocalDateTime downloadedAt,
                    @Param("startedAt") LocalDateTime startedAt,
                    @Param("finishedAt") LocalDateTime finishedAt,
                    @Param("errorFlag") Boolean errorFlag);
@@ -48,7 +49,7 @@ public interface RecordRepository extends JpaRepository<Record, Integer> {
         
         record.setRawData(jsonLine);
         record.setStatus("new");
-        record.setProcessedAt(LocalDateTime.now());
+        record.setDownloadedAt(LocalDateTime.now());
         
         save(record);        
     }
@@ -67,33 +68,64 @@ public interface RecordRepository extends JpaRepository<Record, Integer> {
     }
     
     /**
-     * Update record status
+     * Update record status and startedAt when processing begins
      */
     @Modifying
     @Transactional
-    @Query("UPDATE Record r SET r.status = :status, r.processedAt = :processedAt WHERE r.id = :recordId")
-    void updateRecordStatus(@Param("recordId") Integer recordId, @Param("status") String status, @Param("processedAt") LocalDateTime processedAt);
+    @Query("UPDATE Record r SET r.status = :status, r.startedAt = :startedAt WHERE r.id = :recordId")
+    void updateRecordStatusAndStartedAt(@Param("recordId") Integer recordId, @Param("status") String status, @Param("startedAt") LocalDateTime startedAt);
     
     /**
-     * Update record status (simplified method)
+     * Update record status and startedAt (simplified method)
      */
-    default void updateRecordStatus(Integer recordId, String status) {
-        updateRecordStatus(recordId, status, LocalDateTime.now());
+    default void updateRecordStatusAndStartedAt(Integer recordId, String status) {
+        updateRecordStatusAndStartedAt(recordId, status, LocalDateTime.now());
     }
     
     /**
-     * Update record status with error message
+     * Update record status and finishedAt when processing completes
      */
     @Modifying
     @Transactional
-    @Query("UPDATE Record r SET r.status = :status, r.processedAt = :processedAt, r.errorFlag = true WHERE r.id = :recordId")
-    void updateRecordStatusWithError(@Param("recordId") Integer recordId, @Param("status") String status, @Param("processedAt") LocalDateTime processedAt);
+    @Query("UPDATE Record r SET r.status = :status, r.finishedAt = :finishedAt WHERE r.id = :recordId")
+    void updateRecordStatusAndFinishedAt(@Param("recordId") Integer recordId, @Param("status") String status, @Param("finishedAt") LocalDateTime finishedAt);
     
     /**
-     * Update record status with error message (simplified method)
+     * Update record status and finishedAt (simplified method)
      */
+    default void updateRecordStatusAndFinishedAt(Integer recordId, String status) {
+        updateRecordStatusAndFinishedAt(recordId, status, LocalDateTime.now());
+    }
+    
+    /**
+     * Update record status with error message and finishedAt
+     */
+    @Modifying
+    @Transactional
+    @Query("UPDATE Record r SET r.status = :status, r.finishedAt = :finishedAt, r.errorFlag = true WHERE r.id = :recordId")
+    void updateRecordStatusWithErrorAndFinishedAt(@Param("recordId") Integer recordId, @Param("status") String status, @Param("finishedAt") LocalDateTime finishedAt);
+    
+    /**
+     * Update record status with error message and finishedAt (simplified method)
+     */
+    default void updateRecordStatusWithErrorAndFinishedAt(Integer recordId, String status) {
+        updateRecordStatusWithErrorAndFinishedAt(recordId, status, LocalDateTime.now());
+    }
+    
+    /**
+     * Legacy method for backward compatibility - now uses finishedAt
+     */
+    @Deprecated
+    default void updateRecordStatus(Integer recordId, String status) {
+        updateRecordStatusAndFinishedAt(recordId, status);
+    }
+    
+    /**
+     * Legacy method for backward compatibility - now uses finishedAt
+     */
+    @Deprecated
     default void updateRecordStatus(Integer recordId, String status, String errorMessage) {
-        updateRecordStatusWithError(recordId, status, LocalDateTime.now());
+        updateRecordStatusWithErrorAndFinishedAt(recordId, status);
     }
     
     /**

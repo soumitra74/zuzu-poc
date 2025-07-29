@@ -32,8 +32,8 @@ public class Review {
     @JoinColumn(name = "reviewer_id")
     private Reviewer reviewer;
 
-    @Column(name = "rating_raw")
-    private Double ratingRaw;
+    @Column(name = "rating")
+    private Double rating;
 
     @Column(name = "rating_text")
     private String ratingText;

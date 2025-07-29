@@ -410,7 +410,7 @@ public class JobController {
                 records = recordRepository.findByStatus(status);
             } else {
                 // Get all records with pagination
-                Pageable pageable = PageRequest.of(page, size, Sort.by("processedAt").descending());
+                Pageable pageable = PageRequest.of(page, size, Sort.by("downloadedAt").descending());
                 Page<Record> recordPage = recordRepository.findAll(pageable);
                 records = recordPage.getContent();
             }

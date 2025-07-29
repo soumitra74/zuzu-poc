@@ -90,7 +90,7 @@ class HotelReviewJsonParserTest {
         // Test Review
         assertNotNull(result.getReview());
         assertEquals(947130812L, result.getReview().getReviewExternalId());
-        assertEquals(8.8, result.getReview().getRatingRaw());
+        assertEquals(8.8, result.getReview().getRating());
         assertEquals("Excellent", result.getReview().getRatingText());
         assertEquals("8.8", result.getReview().getRatingFormatted());
         assertEquals("value for money", result.getReview().getReviewTitle());

@@ -10,11 +10,11 @@ import java.time.LocalDateTime;
 public class S3FileDto {
     private Integer id;
     private Integer jobRunId;
-    private String bucket;
-    private String key;
+    private String s3Key;
     private String status;
     private String errorMessage;
     private Integer recordCount;
-    private Boolean isActive;
-    private LocalDateTime processedAt;
+    private Integer pageNumber;
+    private LocalDateTime startedAt;
+    private LocalDateTime finishedAt;
 } 

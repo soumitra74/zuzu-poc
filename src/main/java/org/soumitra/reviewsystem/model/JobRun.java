@@ -19,9 +19,6 @@ public class JobRun {
     @Column(name = "scheduled_at", nullable = false)
     private LocalDateTime scheduledAt;
 
-    @Column(name = "started_at")
-    private LocalDateTime startedAt;
-
     @Column(name = "finished_at")
     private LocalDateTime finishedAt;
 

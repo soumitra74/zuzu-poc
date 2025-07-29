@@ -38,9 +38,6 @@ public class S3File {
     @Column(name = "status")
     private String status;
 
-    @Column(name = "checksum")
-    private String checksum;
-
     @Column(name = "error_message")
     private String errorMessage;
 } 

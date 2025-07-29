@@ -129,18 +129,17 @@ public class CLIService {
         
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         
-        System.out.printf("%-5s %-20s %-10s %-20s %-20s%n", 
-            "ID", "Scheduled At", "Status", "Started At", "Finished At");
-        System.out.println("-".repeat(80));
+        System.out.printf("%-5s %-20s %-10s %-20s%n", 
+            "ID", "Scheduled At", "Status", "Finished At");
+        System.out.println("-".repeat(60));
         
         jobs.stream()
             .limit(limit)
             .forEach(job -> {
-                System.out.printf("%-5d %-20s %-10s %-20s %-20s%n",
+                System.out.printf("%-5d %-20s %-10s %-20s%n",
                     job.getId(),
                     job.getScheduledAt() != null ? job.getScheduledAt().format(formatter) : "N/A",
                     job.getStatus() != null ? job.getStatus() : "N/A",
-                    job.getStartedAt() != null ? job.getStartedAt().format(formatter) : "N/A",
                     job.getFinishedAt() != null ? job.getFinishedAt().format(formatter) : "N/A"
                 );
             });

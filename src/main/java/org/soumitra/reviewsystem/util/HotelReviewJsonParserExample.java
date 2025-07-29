@@ -119,7 +119,7 @@ public class HotelReviewJsonParserExample {
                 System.out.println("  Hotel: " + result.getHotel().getHotelName());
                 System.out.println("  Provider: " + result.getProvider().getProviderName());
                 System.out.println("  Review ID: " + result.getReview().getReviewExternalId());
-                System.out.println("  Rating: " + result.getReview().getRatingRaw());
+                System.out.println("  Rating: " + result.getReview().getRating());
                 System.out.println();
                 
             } catch (Exception e) {
