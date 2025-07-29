@@ -90,7 +90,7 @@ zuzu-poc/
 │
 ├── .gitignore
 ├── README.md
-├── pom.xml
+└── pom.xml
 ```
 
 ## Database configuration
@@ -135,7 +135,7 @@ Logging is not implemented yet (WIP). For now it uses System.out and System.err 
 
 ### Set up DB
 
-Create hotel_reviews db in postgres as user zuzu as owner.
+Create hotel_reviews db in postgres with user zuzu as owner.
 Run the following commands from db/init folder:
 
 ```
@@ -144,7 +144,7 @@ psql -U zuzu -d hotel_reviews < 02__job_and_file_tracking.sql
 psql -U zuzu -d hotel_reviews < 04__create_api_keys_table.sql
 ```
 
-Upload test files(s) in localstack:
+Upload test file(s) in localstack:
 
 ```
 pipenv shell
