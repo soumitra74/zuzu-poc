@@ -150,8 +150,8 @@ Upload test file(s) in localstack:
 pipenv shell
 pip install awscli awscli-local
 
-awslocal s3 mb s3://hotel_reviews
-awslocal s3 cp /d/soumitra/Downloads/agoda_com_2025-04-10.jl s3://hotel_reviews/agoda_com_2025-04-10.jl
+awslocal s3 mb s3://hotel-reviews
+awslocal s3 cp /d/soumitra/Downloads/agoda_com_2025-04-10.jl s3://hotel-reviews/agoda_com_2025-04-10.jl
 ```
 
 ### Compilation and running
