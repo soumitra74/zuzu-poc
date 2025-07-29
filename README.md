@@ -8,7 +8,7 @@ This microservice retrieves Agoda.com / Booking.com / Expedia reviews from an AW
   - to process reach record and build a review system (in RDBMS)
 
 ## Architecture
-The system follows a microservices architecture with the following key components:
+The system is a single microservice with the following key components:
 
 ### Data Flow
 1. **S3 File Processing Job**
