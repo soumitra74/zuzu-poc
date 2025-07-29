@@ -98,4 +98,29 @@ zuzu-poc/
 (I have used postgres for this implementation.)
 
 Create an user zuzu and a db named hotel_reviews
-Update .env file for db configuration.
+Update .properties file for db configuration.
+
+## Other configuration
+
+Used localstack for S3
+
+```
+$ awslocal s3api list-objects-v2 --bucket hotel-reviews
+{
+    "Contents": [
+        {
+            "Key": "agoda_com_2025-04-10.jl",
+            "LastModified": "2025-07-25T17:31:55.000Z",
+            "ETag": "\"57c9b10433248d0c3d4aeef7610900e6\"",
+            "ChecksumAlgorithm": [
+                "CRC32"
+            ],
+            "ChecksumType": "FULL_OBJECT",
+            "Size": 90918,
+            "StorageClass": "STANDARD"
+        }
+    ],
+    "RequestCharged": null,
+    "Prefix": ""
+}
+```
