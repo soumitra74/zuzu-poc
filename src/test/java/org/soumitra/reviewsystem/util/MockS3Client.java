@@ -67,6 +67,14 @@ public class MockS3Client implements S3Client {
             throw new RuntimeException(exceptionMessage);
         }
 
+        // Handle null request
+        if (request == null) {
+            return ListObjectsV2Response.builder()
+                .contents(new ArrayList<>())
+                .nextContinuationToken(null)
+                .build();
+        }
+
         String bucket = request.bucket();
         String prefix = request.prefix() != null ? request.prefix() : "";
         
@@ -92,6 +100,14 @@ public class MockS3Client implements S3Client {
             throw new RuntimeException(exceptionMessage);
         }
 
+        // Handle null request
+        if (request == null) {
+            GetObjectResponse response = GetObjectResponse.builder()
+                .contentLength(0L)
+                .build();
+            return new software.amazon.awssdk.core.ResponseInputStream<>(response, null);
+        }
+
         String key = request.key();
         String content = objectContents.getOrDefault(key, "");
         
@@ -103,10 +119,14 @@ public class MockS3Client implements S3Client {
         return new software.amazon.awssdk.core.ResponseInputStream<>(response, null);
     }
 
-    @Override
     public PutObjectResponse putObject(PutObjectRequest request) {
         if (shouldThrowException) {
             throw new RuntimeException(exceptionMessage);
+        }
+
+        // Handle null request
+        if (request == null) {
+            return PutObjectResponse.builder().build();
         }
 
         // Store the object content
@@ -115,50 +135,72 @@ public class MockS3Client implements S3Client {
         return PutObjectResponse.builder().build();
     }
 
-    @Override
     public DeleteObjectResponse deleteObject(DeleteObjectRequest request) {
         if (shouldThrowException) {
             throw new RuntimeException(exceptionMessage);
+        }
+
+        // Handle null request
+        if (request == null) {
+            return DeleteObjectResponse.builder().build();
         }
 
         objectContents.remove(request.key());
         return DeleteObjectResponse.builder().build();
     }
 
-    @Override
     public CreateBucketResponse createBucket(CreateBucketRequest request) {
         if (shouldThrowException) {
             throw new RuntimeException(exceptionMessage);
+        }
+
+        // Handle null request
+        if (request == null) {
+            return CreateBucketResponse.builder().build();
         }
 
         bucketContents.putIfAbsent(request.bucket(), new ArrayList<>());
         return CreateBucketResponse.builder().build();
     }
 
-    @Override
     public DeleteBucketResponse deleteBucket(DeleteBucketRequest request) {
         if (shouldThrowException) {
             throw new RuntimeException(exceptionMessage);
+        }
+
+        // Handle null request
+        if (request == null) {
+            return DeleteBucketResponse.builder().build();
         }
 
         bucketContents.remove(request.bucket());
         return DeleteBucketResponse.builder().build();
     }
 
-    @Override
     public HeadBucketResponse headBucket(HeadBucketRequest request) {
         if (shouldThrowException) {
             throw new RuntimeException(exceptionMessage);
+        }
+
+        // Handle null request
+        if (request == null) {
+            return HeadBucketResponse.builder().build();
         }
 
         boolean exists = bucketContents.containsKey(request.bucket());
         return HeadBucketResponse.builder().build();
     }
 
-    @Override
     public HeadObjectResponse headObject(HeadObjectRequest request) {
         if (shouldThrowException) {
             throw new RuntimeException(exceptionMessage);
+        }
+
+        // Handle null request
+        if (request == null) {
+            return HeadObjectResponse.builder()
+                .contentLength(0L)
+                .build();
         }
 
         boolean exists = objectContents.containsKey(request.key());

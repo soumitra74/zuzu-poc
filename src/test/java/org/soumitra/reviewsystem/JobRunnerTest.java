@@ -53,11 +53,6 @@ class JobRunnerTest {
         // Setup test data
         String s3Uri = "s3://test-bucket/test-prefix/";
         
-        // Clear existing test data and add only the files we want to test
-        s3Client.clearBucketContents();
-        s3Client.addBucketContent("test-bucket", "test-prefix/file1.jsonl", 1000L);
-        s3Client.addBucketContent("test-bucket", "test-prefix/file2.jsonl", 2000L);
-
         // Mock repository responses
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
             .thenReturn(1);
@@ -71,17 +66,14 @@ class JobRunnerTest {
 
         // Verify
         verify(jobRunRepository).insertJob(any(LocalDateTime.class), eq("MANUAL"), eq("running"), eq("Processing S3 files"));
-        verify(s3FileRepository, times(2)).insertOrUpdateFile(eq(1), eq("test-bucket"), anyString(), eq("processing"), eq(null), eq(true));
+        verify(s3FileRepository, times(3)).insertOrUpdateFile(eq(1), eq("test-bucket"), anyString(), eq("processing"), eq(null), eq(true));
         verify(jobRunRepository).updateJobStatus(eq(1), any(LocalDateTime.class), eq("success"));
     }
 
     @Test
     void testRunJobWithEmptyBucket() throws Exception {
         // Setup test data
-        String s3Uri = "s3://test-bucket/empty-prefix/";
-
-        // Clear bucket contents for empty bucket test
-        s3Client.clearBucketContents();
+        String s3Uri = "s3://empty-bucket/empty-prefix/";
 
         // Mock repository responses
         when(jobRunRepository.insertJob(any(LocalDateTime.class), anyString(), anyString(), anyString()))
