@@ -124,3 +124,9 @@ $ awslocal s3api list-objects-v2 --bucket hotel-reviews
     "Prefix": ""
 }
 ```
+
+Used simple API key based authentication. Refer to the API_KEY_Authentication.md file.
+
+It support both CLI and API based access. Refer to CLI_Readme and REST_API_Readme for usage instructions.
+
+Logging is not implemented yet (WIP). For now it uses System.out and System.err for debug information.
