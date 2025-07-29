@@ -95,7 +95,7 @@ check_health() {
     fi
     
     # Check application health
-    if curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; then
+    if curl -f http://localhost:8080/api/jobs/health > /dev/null 2>&1; then
         print_success "Application is healthy"
     else
         print_warning "Application health check failed (may still be starting)"

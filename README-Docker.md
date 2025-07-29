@@ -132,7 +132,7 @@ aws --endpoint-url=http://localhost:4566 s3 ls s3://hotel-reviews/
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 # Check health
-curl http://localhost:8080/actuator/health
+curl http://localhost:8080/api/jobs/health
 
 # View logs
 docker-compose logs -f app
@@ -163,9 +163,9 @@ chmod +x docker/scripts/*.sh
 ## Service Endpoints
 
 ### Application
-- **Health Check**: http://localhost:8080/actuator/health
+- **Health Check**: http://localhost:8080/api/jobs/health
 - **API Documentation**: http://localhost:8080/swagger-ui.html
-- **Metrics**: http://localhost:8080/actuator/metrics
+- **Metrics**: http://localhost:8080/api/jobs/metrics
 
 ### Database
 - **Host**: localhost
@@ -207,7 +207,7 @@ docker-compose exec db pg_isready -U postgres -d hotel_reviews
 docker-compose logs app
 
 # Check application health
-curl http://localhost:8080/actuator/health
+curl http://localhost:8080/api/jobs/health
 ```
 
 #### 4. S3/LocalStack Issues
