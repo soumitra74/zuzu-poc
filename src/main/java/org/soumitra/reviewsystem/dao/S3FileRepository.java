@@ -80,4 +80,16 @@ public interface S3FileRepository extends JpaRepository<S3File, Integer> {
      */
     @Query("SELECT s FROM S3File s WHERE s.status IN ('new', 'processing')")
     List<S3File> findUnprocessedFiles();
+    
+    /**
+     * Check if file has been successfully processed
+     */
+    @Query("SELECT COUNT(s) > 0 FROM S3File s WHERE s.s3Key = :s3Key AND s.status = 'success'")
+    boolean isFileSuccessfullyProcessed(@Param("s3Key") String s3Key);
+    
+    /**
+     * Check if file is currently being processed
+     */
+    @Query("SELECT COUNT(s) > 0 FROM S3File s WHERE s.s3Key = :s3Key AND s.status = 'processing'")
+    boolean isFileBeingProcessed(@Param("s3Key") String s3Key);
 } 

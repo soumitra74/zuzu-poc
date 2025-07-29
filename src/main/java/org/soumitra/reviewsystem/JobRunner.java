@@ -16,8 +16,6 @@ import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
-// JSON parsing
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class JobRunner {
 
@@ -46,8 +44,23 @@ public class JobRunner {
 
         int totalFilesProcessed = 0;
         int totalRecordsProcessed = 0;
+        int totalFilesSkipped = 0;
 
         for (S3FileRef file : filesToProcess) {
+            // Check if file has already been successfully processed
+            if (fileRepo.isFileSuccessfullyProcessed(file.getKey())) {
+                System.out.println("Skipping already processed file: " + file.getKey());
+                totalFilesSkipped++;
+                continue;
+            }
+
+            // Check if file is currently being processed
+            if (fileRepo.isFileBeingProcessed(file.getKey())) {
+                System.out.println("File is currently being processed, skipping: " + file.getKey());
+                totalFilesSkipped++;
+                continue;
+            }
+
             Integer fileId = fileRepo.insertOrUpdateFile(jobId, file.getBucket(), file.getKey(), "processing", null, true);
 
             int line = 0;
@@ -56,6 +69,7 @@ public class JobRunner {
             String fileErrorMsg = null;
 
             try {
+                System.out.println("Processing file: " + file.getKey());
                 while (true) {
                     List<String> lines = JsonlPaginator.readJsonLines(file.getBucket(), file.getKey(), line, pageSize, s3Client);
 
@@ -79,6 +93,7 @@ public class JobRunner {
             } catch (Exception fileEx) {
                 fileSuccess = false;
                 fileErrorMsg = fileEx.getMessage();
+                System.err.println("Error processing file " + file.getKey() + ": " + fileErrorMsg);
             } finally {
                 fileRepo.updateFileStatus(fileId, fileSuccess ? "success" : "failed", fileErrorMsg, fileRecordCount, false);
             }
@@ -88,6 +103,7 @@ public class JobRunner {
         }
 
         System.out.println("Total files processed: " + totalFilesProcessed);
+        System.out.println("Total files skipped: " + totalFilesSkipped);
         System.out.println("Total records processed: " + totalRecordsProcessed);
 
         // Update job status
