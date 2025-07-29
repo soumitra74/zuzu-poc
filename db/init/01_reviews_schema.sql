@@ -39,7 +39,7 @@ CREATE TABLE review (
     hotel_id           INTEGER     REFERENCES hotel (hotel_id),
     provider_id        SMALLINT    REFERENCES provider (provider_id),
     reviewer_id        BIGINT      REFERENCES reviewer (reviewer_id),
-    rating_raw         NUMERIC(3,1),             
+    rating             NUMERIC(3,1),             
     rating_text        TEXT,                     
     rating_formatted   VARCHAR(10),                     
     review_title       TEXT,
