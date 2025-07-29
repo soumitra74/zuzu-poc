@@ -40,79 +40,96 @@ public class JobRunner {
         // Create a new job run
         Integer jobId = jobRepo.insertJob(LocalDateTime.now(), "MANUAL", "running", "Processing S3 files");
 
-        List<S3FileRef> filesToProcess = S3FileLister.listAllFilesInBucket(s3Uri, s3Client);
+        try {
+            // Get the last successful job run to determine the cutoff time
+            LocalDateTime lastSuccessfulJobTime = jobRepo.findLastSuccessfulJobRun()
+                .map(jobRun -> jobRun.getScheduledAt())
+                .orElse(LocalDateTime.MIN); // If no successful job, process all files
 
-        int totalFilesProcessed = 0;
-        int totalRecordsProcessed = 0;
-        int totalFilesSkipped = 0;
+            System.out.println("Last successful job run time: " + lastSuccessfulJobTime);
 
-        for (S3FileRef file : filesToProcess) {
-            // Check if file has already been successfully processed
-            if (fileRepo.isFileSuccessfullyProcessed(file.getKey())) {
-                System.out.println("Skipping already processed file: " + file.getKey());
-                totalFilesSkipped++;
-                continue;
-            }
+            List<S3FileRef> filesToProcess = S3FileLister.listAllFilesInBucket(s3Uri, s3Client, lastSuccessfulJobTime);
 
-            // Check if file is currently being processed
-            if (fileRepo.isFileBeingProcessed(file.getKey())) {
-                System.out.println("File is currently being processed, skipping: " + file.getKey());
-                totalFilesSkipped++;
-                continue;
-            }
+            int totalFilesProcessed = 0;
+            int totalRecordsProcessed = 0;
+            int totalFilesSkipped = 0;
 
-            Integer fileId = fileRepo.insertOrUpdateFile(jobId, file.getBucket(), file.getKey(), "processing", null, true);
-
-            int line = 0;
-            boolean fileSuccess = true;
-            int fileRecordCount = 0;
-            String fileErrorMsg = null;
-
-            try {
-                System.out.println("Processing file: " + file.getKey());
-                while (true) {
-                    List<String> lines = JsonlPaginator.readJsonLines(file.getBucket(), file.getKey(), line, pageSize, s3Client);
-
-                    if (lines.isEmpty()) break;
-
-                    for (int i = 0; i < lines.size(); i++) {
-                        String jsonLine = lines.get(i);
-                        int lineNumber = line + i; // 0-based line indexing
-
-                        try {
-                            logRecord(fileId, jobId, lineNumber, jsonLine);
-                            fileRecordCount++;
-                        } catch (Exception recEx) {
-                            fileSuccess = false;
-                            //recordRepo.logRecord(fileId, lineNumber, "FAILED", recEx.getMessage());
-                        }
-                    }
-
-                    line += lines.size();
+            for (S3FileRef file : filesToProcess) {
+                // Check if file has already been successfully processed
+                if (fileRepo.isFileSuccessfullyProcessed(file.getKey())) {
+                    System.out.println("Skipping already processed file: " + file.getKey());
+                    totalFilesSkipped++;
+                    continue;
                 }
-            } catch (Exception fileEx) {
-                fileSuccess = false;
-                fileErrorMsg = fileEx.getMessage();
-                System.err.println("Error processing file " + file.getKey() + ": " + fileErrorMsg);
-            } finally {
-                fileRepo.updateFileStatus(fileId, fileSuccess ? "success" : "failed", fileErrorMsg, fileRecordCount, false);
+
+                // Check if file is currently being processed
+                if (fileRepo.isFileBeingProcessed(file.getKey())) {
+                    System.out.println("File is currently being processed, skipping: " + file.getKey());
+                    totalFilesSkipped++;
+                    continue;
+                }
+
+                Integer fileId = fileRepo.insertOrUpdateFile(jobId, file.getBucket(), file.getKey(), "processing", null, true);
+
+                int line = 0;
+                boolean fileSuccess = true;
+                int fileRecordCount = 0;
+                String fileErrorMsg = null;
+
+                try {
+                    System.out.println("Processing file: " + file.getKey());
+                    while (true) {
+                        List<String> lines = JsonlPaginator.readJsonLines(file.getBucket(), file.getKey(), line, pageSize, s3Client);
+
+                        if (lines.isEmpty()) break;
+
+                        for (int i = 0; i < lines.size(); i++) {
+                            String jsonLine = lines.get(i);
+                            int lineNumber = line + i; // 0-based line indexing
+
+                            try {
+                                logRecord(fileId, jobId, lineNumber, jsonLine);
+                                fileRecordCount++;
+                            } catch (Exception recEx) {
+                                fileSuccess = false;
+                                //recordRepo.logRecord(fileId, lineNumber, "FAILED", recEx.getMessage());
+                            }
+                        }
+
+                        line += lines.size();
+                    }
+                } catch (Exception fileEx) {
+                    fileSuccess = false;
+                    fileErrorMsg = fileEx.getMessage();
+                    System.err.println("Error processing file " + file.getKey() + ": " + fileErrorMsg);
+                } finally {
+                    fileRepo.updateFileStatus(fileId, fileSuccess ? "success" : "failed", fileErrorMsg, fileRecordCount, false);
+                }
+
+                totalFilesProcessed++;
+                totalRecordsProcessed += fileRecordCount;
             }
 
-            totalFilesProcessed++;
-            totalRecordsProcessed += fileRecordCount;
+            System.out.println("Total files processed: " + totalFilesProcessed);
+            System.out.println("Total files skipped: " + totalFilesSkipped);
+            System.out.println("Total records processed: " + totalRecordsProcessed);
+
+            // Update job status
+            jobRepo.updateJobStatus(jobId, LocalDateTime.now(), "success");
+        } catch (Exception e) {
+            System.err.println("Error processing job: " + e.getMessage());
+            jobRepo.updateJobStatus(jobId, LocalDateTime.now(), "failed");
+            throw e;
         }
-
-        System.out.println("Total files processed: " + totalFilesProcessed);
-        System.out.println("Total files skipped: " + totalFilesSkipped);
-        System.out.println("Total records processed: " + totalRecordsProcessed);
-
-        // Update job status
-        jobRepo.updateJobStatus(jobId, LocalDateTime.now(), "success");
     }
 
     public static class S3FileLister {
 
         public static List<S3FileRef> listAllFilesInBucket(String s3Uri, S3Client s3Client) {
+            return listAllFilesInBucket(s3Uri, s3Client, LocalDateTime.MIN);
+        }
+
+        public static List<S3FileRef> listAllFilesInBucket(String s3Uri, S3Client s3Client, LocalDateTime cutoffTime) {
             String[] parsed = parseUri(s3Uri);
             String bucket = parsed[0];
             String prefix = parsed[1];
@@ -130,7 +147,18 @@ public class JobRunner {
                 ListObjectsV2Response response = s3Client.listObjectsV2(request);
     
                 for (S3Object obj : response.contents()) {
-                    results.add(new S3FileRef(bucket, obj.key(), obj.lastModified()));
+                    // Only include files that were created after the cutoff time
+                    if (obj.lastModified() != null) {
+                        Instant fileCreatedTime = obj.lastModified();
+                        LocalDateTime fileCreatedDateTime = LocalDateTime.ofInstant(fileCreatedTime, java.time.ZoneOffset.UTC);
+                        
+                        if (fileCreatedDateTime.isAfter(cutoffTime)) {
+                            results.add(new S3FileRef(bucket, obj.key(), obj.lastModified()));
+                        }
+                    } else {
+                        // If lastModified is null, include the file (conservative approach)
+                        results.add(new S3FileRef(bucket, obj.key(), obj.lastModified()));
+                    }
                 }
     
                 continuationToken = response.nextContinuationToken();

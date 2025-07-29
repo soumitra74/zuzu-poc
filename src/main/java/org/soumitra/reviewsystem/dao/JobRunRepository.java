@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface JobRunRepository extends JpaRepository<JobRun, Integer> {
@@ -36,6 +37,12 @@ public interface JobRunRepository extends JpaRepository<JobRun, Integer> {
     void updateJobStatus(@Param("jobId") Integer jobId, 
                         @Param("finishedAt") LocalDateTime finishedAt, 
                         @Param("status") String status);
+    
+    /**
+     * Find the last successful job run
+     */
+    @Query("SELECT j FROM JobRun j WHERE j.status = 'success' ORDER BY j.scheduledAt DESC LIMIT 1")
+    Optional<JobRun> findLastSuccessfulJobRun();
     
     /**
      * Find jobs by status
