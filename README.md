@@ -165,3 +165,51 @@ mvn compile package
 java -jar target/zuzu-poc-1.0-SNAPSHOT.jar run-job --bucket=hotel-reviews
 java -jar target/zuzu-poc-1.0-SNAPSHOT.jar process-records 
 ```
+
+> Note that I have used Mockito, but also created a local MockS3Client class for ease of implementation.
+
+
+## Job Scheduling
+
+These jobs can be configured with a scheduler using REST endpoint. Note that I have assumed that S3 job (aka run-job) will trigger process-records job. Initially I was planning to have just one job, but it made sense to have two idependent ones. process-records job can be fanned out for parallel processing.  
+
+## Known Issues and Enhancements
+
+### Enhancements
+
+1. DB schema can be further normalised. E.g. country can be a separate entity etc.
+2. Authentication should be integrated with Cognito.
+3. S3 bucket should have three folders: inbox, processing, processed.
+
+### Issue list
+
+High priority
+1. Create folder structure in S3. Move processed files to a different folder in S3
+	a. alternatively, rename the file to .processing and .processed in S3
+	b. also check in db whether the file is already processed
+	c. use a date filter -- DONE
+2. Create auth layer: Simple Role-Based API Keys -- DONE
+3. Fix unit tests (mocking of S3Client) -- DONE
+4. Fix response related fields like responder_name, text, date text
+
+Medium priority
+1. remove processed_at from s3_files entity -- DONE
+2. rename record.downloaded_at to created_at -- SKIP
+3. remove new from s3_files entity -- SKIP
+4. Add a logging framework
+5. refactor review. create a review_response entity
+6. versioning of data like hotel, review, provider name etc.
+7. remove started_at from job_runs table -- DONE
+8. refactor country
+9. ReviewProviderLogo is missing
+10. ReviewProviderText == provider name?
+11. review summary table needs to have a FK relationship with review
+12. remove checksum in s3 files -- DONE
+
+Low priority
+1. rename s3_files to source_files -- SKIPPED
+2. rating_category may need a provider_id -- SKIPPED
+3. rename flag_code to flag_name -- SKIPPED
+4. reviewerReviewedCount: is it same as reviews_written?
+5. ratingRaw to be renamed to rating -- DONE
+6. isResponseShown should be changed to isShowReviewResponse?
