@@ -130,3 +130,38 @@ Used simple API key based authentication. Refer to the API_KEY_Authentication.md
 It support both CLI and API based access. Refer to CLI_Readme and REST_API_Readme for usage instructions.
 
 Logging is not implemented yet (WIP). For now it uses System.out and System.err for debug information.
+
+## How to run
+
+### Set up DB
+
+Create hotel_reviews db in postgres as user zuzu as owner.
+Run the following commands from db/init folder:
+
+```
+psql -U zuzu -d hotel_reviews < 01_reviews_schema.sql
+psql -U zuzu -d hotel_reviews < 02__job_and_file_tracking.sql
+psql -U zuzu -d hotel_reviews < 04__create_api_keys_table.sql
+```
+
+Upload test files(s) in localstack:
+
+```
+pipenv shell
+pip install awscli awscli-local
+
+awslocal s3 mb s3://hotel_reviews
+awslocal s3 cp /d/soumitra/Downloads/agoda_com_2025-04-10.jl s3://hotel_reviews/agoda_com_2025-04-10.jl
+```
+
+### Compilation and running
+
+Clone this repository. Install dependent components (like java, maven etc.).
+
+Run the following commands for testing:
+
+```
+mvn compile package
+java -jar target/zuzu-poc-1.0-SNAPSHOT.jar run-job --bucket=hotel-reviews
+java -jar target/zuzu-poc-1.0-SNAPSHOT.jar process-records 
+```
