@@ -4,8 +4,8 @@ This microservice retrieves Agoda.com / Booking.com / Expedia reviews from an AW
 
 ## Features
 - Two separate Jobs: 
--- to pull review files from S3 and store each line of JSONL file as a record Parses and processes 
--- to process reach record and build a review system (in RDBMS)
+  - to pull review files from S3 and store each line of JSONL file as a record Parses and processes 
+  - to process reach record and build a review system (in RDBMS)
 
 ## Architecture
 The system follows a microservices architecture with the following key components:
