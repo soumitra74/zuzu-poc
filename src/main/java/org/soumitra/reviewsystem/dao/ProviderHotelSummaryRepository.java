@@ -11,12 +11,14 @@ import java.util.Optional;
 public interface ProviderHotelSummaryRepository extends JpaRepository<ProviderHotelSummary, ProviderHotelSummaryId> {
     
     /**
-     * Find provider hotel summary by hotel and provider
+     * Find provider hotel summary by hotel, provider, and review
      */
-    Optional<ProviderHotelSummary> findByHotelHotelIdAndProviderProviderId(Integer hotelId, Short providerId);
+    Optional<ProviderHotelSummary> findByHotelHotelIdAndProviderProviderIdAndReviewReviewId(
+        Integer hotelId, Short providerId, Long reviewId);
     
     /**
-     * Check if provider hotel summary exists by hotel and provider
+     * Check if provider hotel summary exists by hotel, provider, and review
      */
-    boolean existsByHotelHotelIdAndProviderProviderId(Integer hotelId, Short providerId);
+    boolean existsByHotelHotelIdAndProviderProviderIdAndReviewReviewId(
+        Integer hotelId, Short providerId, Long reviewId);
 } 

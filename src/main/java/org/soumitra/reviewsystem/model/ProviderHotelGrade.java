@@ -27,6 +27,11 @@ public class ProviderHotelGrade {
     @JoinColumn(name = "category_id")
     private RatingCategory category;
 
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "review_id")
+    private Review review;
+
     @Column(name = "grade_value")
     private Double gradeValue;
 } 

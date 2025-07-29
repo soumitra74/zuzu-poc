@@ -71,15 +71,17 @@ CREATE TABLE stay_info (
 CREATE TABLE provider_hotel_summary (
     hotel_id       INTEGER    REFERENCES hotel (hotel_id),
     provider_id    SMALLINT   REFERENCES provider (provider_id),
+    review_id      BIGINT     REFERENCES review (review_id),
     overall_score  NUMERIC(3,1),
     review_count   INTEGER,
-    PRIMARY KEY (hotel_id, provider_id)
+    PRIMARY KEY (hotel_id, provider_id, review_id)
 );
 
 CREATE TABLE provider_hotel_grade (
     hotel_id       INTEGER    REFERENCES hotel (hotel_id),
     provider_id    SMALLINT   REFERENCES provider (provider_id),
+    review_id      BIGINT     REFERENCES review (review_id),
     category_id    SMALLINT   REFERENCES rating_category (category_id),
     grade_value    NUMERIC(3,1),
-    PRIMARY KEY (hotel_id, provider_id, category_id)
+    PRIMARY KEY (hotel_id, provider_id, category_id, review_id)
 );

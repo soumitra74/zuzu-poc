@@ -42,8 +42,8 @@ public class HotelReviewJsonParser {
         ReviewDto review = parseReview(rootNode, hotel, provider, reviewer);
         
         // Parse additional data if available
-        List<ProviderHotelSummaryDto> summaries = parseProviderHotelSummaries(rootNode, hotel, provider);
-        List<ProviderHotelGradeDto> grades = parseProviderHotelGrades(rootNode, hotel, provider);
+        List<ProviderHotelSummaryDto> summaries = parseProviderHotelSummaries(rootNode, hotel, provider, review);
+        List<ProviderHotelGradeDto> grades = parseProviderHotelGrades(rootNode, hotel, provider, review);
         StayInfoDto stayInfo = parseStayInfo(rootNode);
         
         return HotelReviewParseResult.builder()
@@ -215,7 +215,7 @@ public class HotelReviewJsonParser {
     /**
      * Parse provider hotel summaries from JSON
      */
-    private List<ProviderHotelSummaryDto> parseProviderHotelSummaries(JsonNode rootNode, HotelDto hotel, ProviderDto provider) {
+    private List<ProviderHotelSummaryDto> parseProviderHotelSummaries(JsonNode rootNode, HotelDto hotel, ProviderDto provider, ReviewDto review) {
         List<ProviderHotelSummaryDto> summaries = new ArrayList<>();
         
         JsonNode overallByProvidersNode = rootNode.get("overallByProviders");
@@ -230,6 +230,7 @@ public class HotelReviewJsonParser {
                     summaries.add(ProviderHotelSummaryDto.builder()
                             .hotelId(hotel.getHotelId())
                             .providerId(providerId)
+                            .reviewId(review.getReviewExternalId())
                             .overallScore(overallScore)
                             .reviewCount(reviewCount)
                             .build());
@@ -243,7 +244,7 @@ public class HotelReviewJsonParser {
     /**
      * Parse provider hotel grades from JSON
      */
-    private List<ProviderHotelGradeDto> parseProviderHotelGrades(JsonNode rootNode, HotelDto hotel, ProviderDto provider) {
+    private List<ProviderHotelGradeDto> parseProviderHotelGrades(JsonNode rootNode, HotelDto hotel, ProviderDto provider, ReviewDto review) {
         List<ProviderHotelGradeDto> grades = new ArrayList<>();
         
         JsonNode overallByProvidersNode = rootNode.get("overallByProviders");
@@ -260,6 +261,7 @@ public class HotelReviewJsonParser {
                                     .hotelId(hotel.getHotelId())
                                     .providerId(providerId)
                                     .categoryName(categoryName) // Store category name instead of ID
+                                    .reviewId(review.getReviewExternalId())
                                     .gradeValue(gradeValue)
                                     .build());
                         }

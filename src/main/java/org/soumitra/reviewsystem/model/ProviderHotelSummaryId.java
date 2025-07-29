@@ -10,4 +10,5 @@ import java.io.Serializable;
 public class ProviderHotelSummaryId implements Serializable {
     private Integer hotel;
     private Short provider;
+    private Long review;
 } 

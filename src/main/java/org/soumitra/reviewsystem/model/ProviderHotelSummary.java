@@ -22,6 +22,11 @@ public class ProviderHotelSummary {
     @JoinColumn(name = "provider_id")
     private Provider provider;
 
+    @Id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "review_id")
+    private Review review;
+
     @Column(name = "overall_score")
     private Double overallScore;
 

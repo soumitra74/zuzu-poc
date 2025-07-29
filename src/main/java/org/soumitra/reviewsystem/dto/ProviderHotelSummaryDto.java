@@ -9,6 +9,7 @@ import lombok.*;
 public class ProviderHotelSummaryDto {
     private Integer hotelId;
     private Short providerId;
+    private Long reviewId;
     private Double overallScore;
     private Integer reviewCount;
 } 

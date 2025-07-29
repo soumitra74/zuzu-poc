@@ -11,14 +11,14 @@ import java.util.Optional;
 public interface ProviderHotelGradeRepository extends JpaRepository<ProviderHotelGrade, ProviderHotelGradeId> {
     
     /**
-     * Find provider hotel grade by hotel, provider, and category
+     * Find provider hotel grade by hotel, provider, category, and review
      */
-    Optional<ProviderHotelGrade> findByHotelHotelIdAndProviderProviderIdAndCategoryCategoryId(
-        Integer hotelId, Short providerId, Short categoryId);
+    Optional<ProviderHotelGrade> findByHotelHotelIdAndProviderProviderIdAndCategoryCategoryIdAndReviewReviewId(
+        Integer hotelId, Short providerId, Short categoryId, Long reviewId);
     
     /**
-     * Check if provider hotel grade exists by hotel, provider, and category
+     * Check if provider hotel grade exists by hotel, provider, category, and review
      */
-    boolean existsByHotelHotelIdAndProviderProviderIdAndCategoryCategoryId(
-        Integer hotelId, Short providerId, Short categoryId);
+    boolean existsByHotelHotelIdAndProviderProviderIdAndCategoryCategoryIdAndReviewReviewId(
+        Integer hotelId, Short providerId, Short categoryId, Long reviewId);
 } 

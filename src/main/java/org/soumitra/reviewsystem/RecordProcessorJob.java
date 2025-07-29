@@ -131,13 +131,13 @@ public class RecordProcessorJob {
         Reviewer reviewer = upsertReviewerFromDto(hotelReview.getReviewer(), provider);
             
         // Extract and upsert review
-        upsertReviewFromDto(hotelReview.getReview(), hotel, provider, reviewer);
+        Review review = upsertReviewFromDto(hotelReview.getReview(), hotel, provider, reviewer);
 
         upsertStayInfoFromDto(hotelReview.getStayInfo(), hotel, provider, reviewer);
         
         // Extract and upsert provider hotel summaries and grades
-        upsertProviderHotelSummariesFromDto(hotelReview.getProviderHotelSummaries(), hotel, provider);
-        upsertProviderHotelGradesFromDto(hotelReview.getProviderHotelGrades(), hotel, provider);
+        upsertProviderHotelSummariesFromDto(hotelReview.getProviderHotelSummaries(), hotel, provider, review);
+        upsertProviderHotelGradesFromDto(hotelReview.getProviderHotelGrades(), hotel, provider, review);
     }
     
     /**
@@ -194,10 +194,10 @@ public class RecordProcessorJob {
     /**
      * Upsert review from DTO
      */
-    private void upsertReviewFromDto(org.soumitra.reviewsystem.dto.ReviewDto reviewDto, Hotel hotel, Provider provider, Reviewer reviewer) {
+    private Review upsertReviewFromDto(org.soumitra.reviewsystem.dto.ReviewDto reviewDto, Hotel hotel, Provider provider, Reviewer reviewer) {
         if (reviewRepo.existsByReviewExternalId(reviewDto.getReviewExternalId())) {
             System.out.println("Review already exists, skipping: " + reviewDto.getReviewExternalId());
-            return;
+            return reviewRepo.findByReviewExternalId(reviewDto.getReviewExternalId()).orElse(null);
         }
         
         Review newReview = Review.builder()
@@ -224,7 +224,7 @@ public class RecordProcessorJob {
             .build();
             
         System.out.println("Creating new review: " + reviewDto.getReviewExternalId());
-        reviewRepo.save(newReview);
+        return reviewRepo.save(newReview);
         }
         
     /**
@@ -267,7 +267,7 @@ public class RecordProcessorJob {
     /**
      * Upsert provider hotel summaries from DTO
      */
-    private void upsertProviderHotelSummariesFromDto(List<org.soumitra.reviewsystem.dto.ProviderHotelSummaryDto> summaries, Hotel hotel, Provider provider) {
+    private void upsertProviderHotelSummariesFromDto(List<org.soumitra.reviewsystem.dto.ProviderHotelSummaryDto> summaries, Hotel hotel, Provider provider, Review review) {
         if (summaries == null || summaries.isEmpty()) {
             System.out.println("No provider hotel summaries available, skipping");
             return;
@@ -279,19 +279,23 @@ public class RecordProcessorJob {
                 .orElse(provider); // Fallback to the main provider if not found
             
             // Check if summary already exists
-            if (providerHotelSummaryRepo.existsByHotelHotelIdAndProviderProviderId(hotel.getHotelId(), summaryProvider.getProviderId())) {
-                System.out.println("Provider hotel summary already exists for hotel: " + hotel.getHotelId() + ", provider: " + summaryProvider.getProviderId());
+            if (providerHotelSummaryRepo.existsByHotelHotelIdAndProviderProviderIdAndReviewReviewId(
+                hotel.getHotelId(), summaryProvider.getProviderId(), review.getReviewId())) {
+                System.out.println("Provider hotel summary already exists for hotel: " + hotel.getHotelId() + 
+                    ", provider: " + summaryProvider.getProviderId() + ", review: " + review.getReviewId());
                 continue;
             }
             
             ProviderHotelSummary newSummary = ProviderHotelSummary.builder()
                 .hotel(hotel)
                 .provider(summaryProvider)
+                .review(review)
                 .overallScore(summaryDto.getOverallScore())
                 .reviewCount(summaryDto.getReviewCount())
                 .build();
                 
-            System.out.println("Creating new provider hotel summary for hotel: " + hotel.getHotelId() + ", provider: " + summaryProvider.getProviderId());
+            System.out.println("Creating new provider hotel summary for hotel: " + hotel.getHotelId() + 
+                ", provider: " + summaryProvider.getProviderId() + ", review: " + review.getReviewId());
             providerHotelSummaryRepo.save(newSummary);
         }
     }
@@ -299,7 +303,7 @@ public class RecordProcessorJob {
     /**
      * Upsert provider hotel grades from DTO
      */
-    private void upsertProviderHotelGradesFromDto(List<org.soumitra.reviewsystem.dto.ProviderHotelGradeDto> grades, Hotel hotel, Provider provider) {
+    private void upsertProviderHotelGradesFromDto(List<org.soumitra.reviewsystem.dto.ProviderHotelGradeDto> grades, Hotel hotel, Provider provider, Review review) {
         if (grades == null || grades.isEmpty()) {
             System.out.println("No provider hotel grades available, skipping");
             return;
@@ -319,10 +323,11 @@ public class RecordProcessorJob {
             }
             
             // Check if grade already exists
-            if (providerHotelGradeRepo.existsByHotelHotelIdAndProviderProviderIdAndCategoryCategoryId(
-                hotel.getHotelId(), gradeProvider.getProviderId(), category.getCategoryId())) {
+            if (providerHotelGradeRepo.existsByHotelHotelIdAndProviderProviderIdAndCategoryCategoryIdAndReviewReviewId(
+                hotel.getHotelId(), gradeProvider.getProviderId(), category.getCategoryId(), review.getReviewId())) {
                 System.out.println("Provider hotel grade already exists for hotel: " + hotel.getHotelId() + 
-                    ", provider: " + gradeProvider.getProviderId() + ", category: " + category.getCategoryId());
+                    ", provider: " + gradeProvider.getProviderId() + ", category: " + category.getCategoryId() + 
+                    ", review: " + review.getReviewId());
                 continue;
             }
             
@@ -330,11 +335,13 @@ public class RecordProcessorJob {
                 .hotel(hotel)
                 .provider(gradeProvider)
                 .category(category)
+                .review(review)
                 .gradeValue(gradeDto.getGradeValue())
                 .build();
                 
             System.out.println("Creating new provider hotel grade for hotel: " + hotel.getHotelId() + 
-                ", provider: " + gradeProvider.getProviderId() + ", category: " + category.getCategoryName());
+                ", provider: " + gradeProvider.getProviderId() + ", category: " + category.getCategoryName() + 
+                ", review: " + review.getReviewId());
             providerHotelGradeRepo.save(newGrade);
         }
     }

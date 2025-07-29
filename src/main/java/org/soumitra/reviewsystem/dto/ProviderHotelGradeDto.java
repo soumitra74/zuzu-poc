@@ -11,5 +11,6 @@ public class ProviderHotelGradeDto {
     private Short providerId;
     private Short categoryId;
     private String categoryName;
+    private Long reviewId;
     private Double gradeValue;
 } 
