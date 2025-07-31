@@ -16,14 +16,13 @@ The system is a single microservice with the following key components:
    - Downloads and processes files line by line
    - Stores raw records in database for further processing
    - Tracks job and file processing status
-   - Avoid duplicate processing using file name and updated timestamp
+   - Avoids duplicate processing using file name and updated timestamp
 
 2. **Record Processing Job** 
    - Retrieves unprocessed records from database
    - Parses JSON data into domain objects
    - Validates and transforms data
    - Stores normalized data in relational tables
-   - Handles errors and retries
    - Tracks each record's processing status, processing time
    - Errors are stored in record_errors table for further analysis
    - Tracks source system IDs in external_id columns (wherever applicable)
@@ -39,14 +38,12 @@ The system is a single microservice with the following key components:
   - JPA/Hibernate for ORM
 
 - **Processing Engine**
-  - Multi-threaded processing for improved throughput
-  - Error handling and retry mechanisms
   - Idempotent processing to handle duplicates
 
 - **Monitoring & Logging**
   - Job status tracking
   - Error logging and reporting
-  - Processing metrics and statistics
+  - Processing metrics recorded
 
 ### Technology Stack
 - Spring Boot for application framework
