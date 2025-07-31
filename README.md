@@ -127,7 +127,7 @@ $ awslocal s3api list-objects-v2 --bucket hotel-reviews
 
 Used simple API key based authentication. Refer to the API_KEY_Authentication.md file.
 
-It support both CLI and API based access. Refer to CLI_Readme and REST_API_Readme for usage instructions.
+It supports both CLI and API based access. Refer to CLI_Readme and REST_API_Readme for usage instructions.
 
 Logging is not implemented yet (WIP). For now it uses System.out and System.err for debug information.
 
@@ -186,7 +186,7 @@ These jobs can be configured with a scheduler using REST endpoint. Note that I h
 High priority
 1. Create folder structure in S3. Move processed files to a different folder in S3
 	a. alternatively, rename the file to .processing and .processed in S3
-	b. also check in db whether the file is already processed
+	b. also check in db whether the file is already processed -- DONE
 	c. use a date filter -- DONE
 2. Create auth layer: Simple Role-Based API Keys -- DONE
 3. Fix unit tests (mocking of S3Client) -- DONE
@@ -203,7 +203,7 @@ Medium priority
 8. refactor country
 9. ReviewProviderLogo is missing
 10. ReviewProviderText == provider name?
-11. review summary table needs to have a FK relationship with review
+11. review summary table needs to have a FK relationship with review -- DONE
 12. remove checksum in s3 files -- DONE
 
 Low priority
